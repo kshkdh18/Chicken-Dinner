@@ -14,6 +14,14 @@ class MirrorSettings(BaseModel):
     attack_categories: List[str] = Field(
         default_factory=lambda: ["prompt_injection", "jailbreak", "pii_leak"]
     )
+    attack_fanout: int = 3
+    attack_turns: int = 2
+    attack_variants: int = 4
+    dynamic_attacks: bool = True
+    mutation_methods: List[str] = Field(
+        default_factory=lambda: ["base64", "rot13", "spacing", "leetspeak"]
+    )
+    mutation_rate: float = 0.4
     guardrail_port: int = 8080
     model: str = "gpt-5-mini"
     attacker_model: str | None = None

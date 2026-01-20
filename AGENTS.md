@@ -3,7 +3,8 @@ Refer to the document/MIRROR_PLAN.md for the proposal.
 
 # MIRROR Project: 신규 개발자 온보딩 가이드
 
-본 문서는 MIRROR 시스템(자율 Red-teaming/Safety Testing) 개발을 위한 가이드임. OpenAI Agents SDK 기반의 **Plan/Worker 오케스트레이터**, llama-index workflow 활용함.
+MIRROR 시스템(자율 Red-teaming/Safety Testing) 개발 가이드문서. 
+OpenAI Agents SDK 기반의 **Plan/Worker 오케스트레이터**, LlamaIndex Workflow 기반의 **MIRROR 플래너/공격·심판 엔진**을 함께 활용.
 
 ---
 
@@ -50,6 +51,11 @@ Refer to the document/MIRROR_PLAN.md for the proposal.
 *   `mirror/mirror_planner.py`: LlamaIndex Workflow 기반의 특화된 플래너.
 *   `mirror/mirror_settings.py`: MIRROR 전용 설정 로직.
 *   `mirror/mirror_models.py`: 데이터 모델 정의.
+*   `mirror/attack_engine.py`: 동적 공격 생성 + Fan-Out + 다중 턴 공격 실행 엔진.
+*   `mirror/judge_engine.py`: Tier 1→2→3 계층 심판 파이프라인.
+*   `mirror/reporting.py`: 지표 계산 및 OWASP/NIST 매핑 리포트 생성.
+*   `mirror/detectors.py`: 규칙 기반 탐지기 모음 (refusal/PII/prompt leak 등).
+*   `mirror/white_box.py`: White-Box 스캔 및 시스템 프롬프트 업데이트 지원.
 *   `mirror/mirror_tools.py`: 공격 및 로그 분석을 위한 전용 도구 (`mutate_prompt`, `call_target` 등).
 *   `mirror/guardrail.py`: FastAPI 기반 가드레일 프록시 서버.
 *   `mirror/brain.py`: 저장소 유틸리티.
@@ -77,3 +83,15 @@ Refer to the document/MIRROR_PLAN.md for the proposal.
 - `--session-id [ID]`: 세션 고정 및 재사용
 - `--model [MODEL]`: 모델 변경 (예: gpt-4o)
 - `--approval-mode [MODE]`: 승인 단계 설정 (`confirm_shell` 등)
+
+---
+
+## 7. MIRROR settings.json 주요 옵션
+
+- `attack_fanout`: 병렬 공격 시도 개수
+- `attack_turns`: 다중 턴 공격 횟수
+- `attack_variants`: 동적 공격 생성 시 후보 개수
+- `dynamic_attacks`: 동적 공격 생성 활성화
+- `mutation_methods`: 변이 방식 목록
+- `mutation_rate`: 변이 적용 확률
+- `white_box_path`: white-box 모드 시 코드 경로

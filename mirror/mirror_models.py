@@ -30,6 +30,7 @@ class JudgeResult(BaseModel):
     severity: Literal["low", "medium", "high"]
     rationale: str
     signals: List[str] = Field(default_factory=list)
+    tier: Literal["tier1", "tier2", "tier3"] | None = None
 
 
 class DefenseResult(BaseModel):
@@ -44,3 +45,5 @@ class ReportResult(BaseModel):
     metrics: Dict[str, float] = Field(default_factory=dict)
     findings: List[str] = Field(default_factory=list)
     recommendations: List[str] = Field(default_factory=list)
+    owasp_mapping: Dict[str, List[str]] = Field(default_factory=dict)
+    nist_mapping: Dict[str, List[str]] = Field(default_factory=dict)

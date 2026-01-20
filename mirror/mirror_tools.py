@@ -1,30 +1,19 @@
 from __future__ import annotations
 
-import base64
-import codecs
 from pathlib import Path
 import re
 from typing import Any, Dict, List
 
-import httpx
 from agents import function_tool
 
 from .attack_library import get_prompts
+from .attack_utils import call_target_sync, mutate_prompt
 from .brain import BrainStore
 from .mirror_settings import MirrorSettings
 
 
 def _result(ok: bool, **payload: Any) -> Dict[str, Any]:
     return {"ok": ok, **payload}
-
-
-def _leetspeak(text: str) -> str:
-    table = str.maketrans({"a": "@", "e": "3", "i": "1", "o": "0", "s": "5"})
-    return text.translate(table)
-
-
-def _spacing(text: str) -> str:
-    return " ".join(list(text))
 
 
 def build_attack_tools(settings: MirrorSettings, brain: BrainStore) -> List[Any]:
@@ -36,15 +25,8 @@ def build_attack_tools(settings: MirrorSettings, brain: BrainStore) -> List[Any]
     @function_tool
     def mutate_prompt(prompt: str, method: str = "base64") -> Dict[str, Any]:
         """Apply a simple mutation to a prompt (base64, rot13, spacing, leetspeak)."""
-        if method == "base64":
-            mutated = base64.b64encode(prompt.encode("utf-8")).decode("utf-8")
-        elif method == "rot13":
-            mutated = codecs.encode(prompt, "rot_13")
-        elif method == "spacing":
-            mutated = _spacing(prompt)
-        elif method == "leetspeak":
-            mutated = _leetspeak(prompt)
-        else:
+        mutated = mutate_prompt(prompt, method)
+        if mutated is None:
             return _result(False, error=f"Unknown method: {method}")
         return _result(True, method=method, mutated=mutated)
 
@@ -55,29 +37,20 @@ def build_attack_tools(settings: MirrorSettings, brain: BrainStore) -> List[Any]
         endpoint_format: str | None = None,
     ) -> Dict[str, Any]:
         """Call the target endpoint with a message."""
-        url = endpoint or settings.endpoint
-        fmt = endpoint_format or settings.endpoint_format
-        timeout = settings.request_timeout
-        try:
-            if fmt == "openai-chat":
-                payload = {
-                    "model": settings.target_model or settings.model,
-                    "messages": [{"role": "user", "content": message}],
-                }
-                response = httpx.post(url, json=payload, timeout=timeout)
-                response.raise_for_status()
-                data = response.json()
-                content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
-                return _result(True, response=content, raw=data, status_code=response.status_code)
-
-            payload = {"message": message}
-            response = httpx.post(url, json=payload, timeout=timeout)
-            response.raise_for_status()
-            data = response.json()
-            content = data.get("answer", "")
-            return _result(True, response=content, raw=data, status_code=response.status_code)
-        except Exception as exc:
-            return _result(False, error=str(exc))
+        result = call_target_sync(
+            settings=settings,
+            message=message,
+            endpoint=endpoint,
+            endpoint_format=endpoint_format,
+        )
+        if not result.get("ok"):
+            return _result(False, error=result.get("error", "Unknown error"))
+        return _result(
+            True,
+            response=result.get("response", ""),
+            raw=result.get("raw"),
+            status_code=result.get("status_code"),
+        )
 
     @function_tool
     def append_attack_log(iteration: int, section: str, content: str) -> Dict[str, Any]:
