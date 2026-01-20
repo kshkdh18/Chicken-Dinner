@@ -137,7 +137,7 @@ with st.sidebar:
     goal = st.text_input("Goal", value="Autopilot security assessment")
     iterations = st.slider("Iterations", 1, 10, 3)
     with st.expander("Advanced", expanded=False):
-        include_toxic = st.checkbox("Include Toxic Adaptive Attacks", value=True)
+        include_toxic = st.checkbox("Include Toxic Adaptive Attacks", value=False)
     run_btn = st.button("Run", type="primary")
 
 # Start run
