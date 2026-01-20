@@ -147,7 +147,7 @@ def guardrail(
         rules_path = Path.home() / ".mirror" / "brain" / "default" / "guardrail_rules.json"
     import uvicorn
 
-    from .guardrail import create_app
+    from .defense.guardrail import create_app
 
     app_instance = create_app(rules_path=rules_path, model=model)
     uvicorn.run(app_instance, host=host, port=port)
