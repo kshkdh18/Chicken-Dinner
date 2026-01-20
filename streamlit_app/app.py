@@ -8,6 +8,8 @@ from typing import List, Tuple
 import streamlit as st
 
 from mirror.autopilot import discover_endpoint, run_autopilot, write_comparison
+from dotenv import load_dotenv
+import os
 from mirror.brain import BrainStore
 from mirror.mirror_tools import build_reporter_tools
 from mirror.prompts import session_reporter_instructions
@@ -114,8 +116,12 @@ def _regenerate_report(brain_dir: Path, model: str = "gpt-4o-mini") -> str:
 
 
 st.set_page_config(page_title="MIRROR Autopilot", layout="wide")
+load_dotenv()
 st.title("MIRROR Autopilot (LIVE)")
 st.write("OFF→ON 전체 플로우를 스냅샷 또는 실시간으로 보고, REPORT 에이전트 결과까지 확인합니다.")
+key_ok = bool(os.getenv("OPENAI_API_KEY"))
+if not key_ok:
+    st.warning("OPENAI_API_KEY 가 설정되지 않았습니다. Judge/Agent가 borderline(parse_error)로 표시될 수 있습니다.")
 
 if "executor" not in st.session_state:
     st.session_state.executor = ThreadPoolExecutor(max_workers=2)
@@ -165,6 +171,7 @@ def _run_auto_pair(goal: str, iterations: int, include_toxic: bool, off_id: str,
     settings_off = MirrorSettings(
         mode="guardrail-off", endpoint=endpoint, endpoint_format=fmt,
         max_iterations=iterations, use_toxic_small_llm=include_toxic,
+        judge_model="gpt-4o-mini", defense_model="gpt-4o-mini", reporter_model="gpt-4o-mini",
     )
     config_off = MirrorRunConfig(workspace_root=Path(".").resolve(), session_id=off_id)
     orch_off = MirrorOrchestrator(config_off, settings_off)
@@ -173,6 +180,7 @@ def _run_auto_pair(goal: str, iterations: int, include_toxic: bool, off_id: str,
     settings_on = MirrorSettings(
         mode="guardrail-on", endpoint=endpoint, endpoint_format=fmt,
         max_iterations=iterations, use_toxic_small_llm=include_toxic,
+        judge_model="gpt-4o-mini", defense_model="gpt-4o-mini", reporter_model="gpt-4o-mini",
     )
     config_on = MirrorRunConfig(workspace_root=Path(".").resolve(), session_id=on_id)
     orch_on = MirrorOrchestrator(config_on, settings_on)
