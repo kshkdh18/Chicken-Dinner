@@ -36,7 +36,7 @@ Chicken DInner
 
 ## 아키텍처
 
-MIRROR는 오케스트레이터의 통제 하에 4개의 에이전트가 파일 기반(`ATTACK_n.md`)으로 협업하며 루프를 돕니다.
+MIRROR는 오케스트레이터의 통제 하에 4개의 에이전트가 `PLANS.md`와`ATTACK_n.md`으로 계획과 로그를 공유하고 협업하며 루프를 돕니다.
 
 <img width="1931" height="1260" alt="mermaid-diagram-2026-01-20-175716" src="https://github.com/user-attachments/assets/20361fc0-6d57-42a3-8173-060f44f8d5a0" />
 
@@ -85,3 +85,4 @@ uv run streamlit run streamlit_app/app.py
 | ---- | ---- |
 | 김수호 | 프로젝트 총괄, 아키텍처 설계, 오케스트레이터 구현 |
 | 김동현 | 공격(Red Team) 및 방어(Blue Team) 에이전트 로직, 프록시 서버, Streamlit 구햔 |
+
