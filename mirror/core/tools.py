@@ -1,19 +1,19 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import os
 import shutil
 import subprocess
 import tempfile
-from typing import Any, Dict, List, Tuple
+from dataclasses import dataclass
+from typing import Any
 
 from agents import function_tool
 
-from .config import ApprovalMode, OrchestratorConfig
 from ..storage.workspace import CommandPolicy, Workspace
+from .config import ApprovalMode, OrchestratorConfig
 
 
-def _result(ok: bool, **payload: Any) -> Dict[str, Any]:
+def _result(ok: bool, **payload: Any) -> dict[str, Any]:
     return {"ok": ok, **payload}
 
 
@@ -23,10 +23,10 @@ def _strip_patch_prefix(path: str) -> str:
     return path
 
 
-def _normalize_patch(patch: str) -> Tuple[str, List[str]]:
+def _normalize_patch(patch: str) -> tuple[str, list[str]]:
     lines = patch.splitlines()
-    normalized: List[str] = []
-    paths: List[str] = []
+    normalized: list[str] = []
+    paths: list[str] = []
 
     for line in lines:
         if line.startswith(("--- ", "+++ ")):
@@ -80,7 +80,7 @@ class ToolBox:
         if self.approval_mode in {ApprovalMode.CONFIRM_SHELL, ApprovalMode.CONFIRM_ALL}:
             raise PermissionError("Shell approval required by approval_mode.")
 
-    def read_file(self, path: str, offset: int = 0, limit: int = 2000) -> Dict[str, Any]:
+    def read_file(self, path: str, offset: int = 0, limit: int = 2000) -> dict[str, Any]:
         file_path = self.workspace.resolve_path(path)
         if not file_path.exists():
             return _result(False, error=f"File not found: {path}")
@@ -112,7 +112,7 @@ class ToolBox:
             content=content,
         )
 
-    def list_dir(self, path: str = ".", max_entries: int = 200) -> Dict[str, Any]:
+    def list_dir(self, path: str = ".", max_entries: int = 200) -> dict[str, Any]:
         dir_path = self.workspace.resolve_path(path)
         if not dir_path.exists():
             return _result(False, error=f"Path not found: {path}")
@@ -136,7 +136,7 @@ class ToolBox:
 
         return _result(True, path=path, entries=entries, truncated=truncated)
 
-    def write_file(self, path: str, content: str, create_dirs: bool = True) -> Dict[str, Any]:
+    def write_file(self, path: str, content: str, create_dirs: bool = True) -> dict[str, Any]:
         self._ensure_write_allowed()
 
         file_path = self.workspace.resolve_path(path)
@@ -162,7 +162,7 @@ class ToolBox:
         new_string: str,
         expected_count: int = 1,
         allow_fuzzy: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         self._ensure_write_allowed()
 
         if allow_fuzzy:
@@ -197,7 +197,7 @@ class ToolBox:
         file_path.write_text(updated, encoding="utf-8")
         return _result(True, path=path, replacements=expected_count)
 
-    def apply_patch(self, patch: str) -> Dict[str, Any]:
+    def apply_patch(self, patch: str) -> dict[str, Any]:
         self._ensure_write_allowed()
 
         if not patch.strip():
@@ -250,7 +250,7 @@ class ToolBox:
 
     def search_text(
         self, pattern: str, path: str = ".", max_matches: int = 200
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         search_path = self.workspace.resolve_path(path)
         if not search_path.exists():
             return _result(False, error=f"Path not found: {path}")
@@ -301,7 +301,7 @@ class ToolBox:
         command: str,
         cwd: str | None = None,
         timeout: int | None = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         self._ensure_shell_allowed()
 
         deny_match = self.command_policy.check(command)
@@ -352,21 +352,21 @@ def build_toolbox(config: OrchestratorConfig) -> ToolBox:
     )
 
 
-def build_tools(config: OrchestratorConfig) -> List[Any]:
+def build_tools(config: OrchestratorConfig) -> list[Any]:
     toolbox = build_toolbox(config)
 
     @function_tool
-    def read_file(path: str, offset: int = 0, limit: int = 2000) -> Dict[str, Any]:
+    def read_file(path: str, offset: int = 0, limit: int = 2000) -> dict[str, Any]:
         """Read a file slice with offset/limit, returning truncation info."""
         return toolbox.read_file(path=path, offset=offset, limit=limit)
 
     @function_tool
-    def list_dir(path: str = ".", max_entries: int = 200) -> Dict[str, Any]:
+    def list_dir(path: str = ".", max_entries: int = 200) -> dict[str, Any]:
         """List directory contents with a maximum number of entries."""
         return toolbox.list_dir(path=path, max_entries=max_entries)
 
     @function_tool
-    def write_file(path: str, content: str, create_dirs: bool = True) -> Dict[str, Any]:
+    def write_file(path: str, content: str, create_dirs: bool = True) -> dict[str, Any]:
         """Write a file atomically, creating directories when requested."""
         return toolbox.write_file(path=path, content=content, create_dirs=create_dirs)
 
@@ -377,7 +377,7 @@ def build_tools(config: OrchestratorConfig) -> List[Any]:
         new_string: str,
         expected_count: int = 1,
         allow_fuzzy: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Replace an exact string occurrence with verification."""
         return toolbox.edit_file(
             path=path,
@@ -388,14 +388,14 @@ def build_tools(config: OrchestratorConfig) -> List[Any]:
         )
 
     @function_tool
-    def apply_patch(patch: str) -> Dict[str, Any]:
+    def apply_patch(patch: str) -> dict[str, Any]:
         """Apply a unified diff patch with workspace path safeguards."""
         return toolbox.apply_patch(patch=patch)
 
     @function_tool
     def search_text(
         pattern: str, path: str = ".", max_matches: int = 200
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Search files for a pattern using rg if available, otherwise grep."""
         return toolbox.search_text(pattern=pattern, path=path, max_matches=max_matches)
 
@@ -404,7 +404,7 @@ def build_tools(config: OrchestratorConfig) -> List[Any]:
         command: str,
         cwd: str | None = None,
         timeout: int | None = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Execute a shell command inside the workspace with a timeout. To set environment variables, use shell syntax (e.g., 'ENV_VAR=value command')."""
         return toolbox.run_shell(command=command, cwd=cwd, timeout=timeout)
 

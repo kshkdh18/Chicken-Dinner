@@ -2,15 +2,13 @@ from __future__ import annotations
 
 import os
 from contextlib import asynccontextmanager
-from typing import Optional
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-
 from llama_index.core import Settings, SimpleDirectoryReader, VectorStoreIndex
-from llama_index.llms.openai import OpenAI
 from llama_index.embeddings.openai import OpenAIEmbedding
+from llama_index.llms.openai import OpenAI
+from pydantic import BaseModel
 
 # --- 전역 구성 및 설정 ---
 load_dotenv()
@@ -61,7 +59,7 @@ def initialize_rag_engine(data_dir: str = AppConfig.DATA_DIR):
     return index.as_query_engine(similarity_top_k=AppConfig.TOP_K)
 
 
-def apply_naive_guardrail(user_message: str) -> Optional[str]:
+def apply_naive_guardrail(user_message: str) -> str | None:
     """
     아주 단순한 키워드 기반 가드레일. 
     레드티밍 시나리오에서 보안 로직 유무에 따른 차이를 확인하기 위한 용도입니다.

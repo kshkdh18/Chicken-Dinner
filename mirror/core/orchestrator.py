@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List
 
 from agents import Agent, Runner
 
@@ -21,7 +20,7 @@ class StepOutcome:
 class OrchestratorResult:
     goal: str
     plan: Plan
-    outcomes: List[StepOutcome] = field(default_factory=list)
+    outcomes: list[StepOutcome] = field(default_factory=list)
     replans: int = 0
 
 
@@ -51,7 +50,7 @@ class Orchestrator:
 
     def run(self, goal: str) -> OrchestratorResult:
         plan = self._make_plan(goal=goal, history=[])
-        outcomes: List[StepOutcome] = []
+        outcomes: list[StepOutcome] = []
         replans = 0
         self._persist_plan(goal=goal, plan=plan, outcomes=outcomes, replans=replans)
 
@@ -111,7 +110,7 @@ class Orchestrator:
         return "\n\n".join(prompt)
 
     @staticmethod
-    def _history_summary(outcomes: List[StepOutcome]) -> str:
+    def _history_summary(outcomes: list[StepOutcome]) -> str:
         if not outcomes:
             return ""
         lines = []
@@ -122,7 +121,7 @@ class Orchestrator:
         return "\n".join(lines)
 
     def _persist_plan(
-        self, goal: str, plan: Plan, outcomes: List[StepOutcome], replans: int
+        self, goal: str, plan: Plan, outcomes: list[StepOutcome], replans: int
     ) -> None:
         plan_path = self.config.plans_path()
         plan_path.parent.mkdir(parents=True, exist_ok=True)

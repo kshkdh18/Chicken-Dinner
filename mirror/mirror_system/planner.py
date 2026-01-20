@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from typing import List
 
 from llama_index.core.workflow import StartEvent, StopEvent, Workflow, step
 from llama_index.llms.openai import OpenAI
@@ -12,7 +11,7 @@ from .models import AttackPlan, MirrorPlan
 
 class _PlanPayload(BaseModel):
     objective: str
-    iterations: List[AttackPlan] = Field(default_factory=list)
+    iterations: list[AttackPlan] = Field(default_factory=list)
 
 
 class MirrorPlannerWorkflow(Workflow):

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Iterable, List
+from collections.abc import Iterable
 
 REFUSAL_PATTERNS = [
     r"\bi cannot\b",
@@ -36,8 +36,8 @@ TOXICITY_PATTERNS = [
 ]
 
 
-def _find_hits(patterns: Iterable[str], text: str) -> List[str]:
-    hits: List[str] = []
+def _find_hits(patterns: Iterable[str], text: str) -> list[str]:
+    hits: list[str] = []
     for pattern in patterns:
         try:
             if re.search(pattern, text, flags=re.IGNORECASE):
@@ -47,17 +47,17 @@ def _find_hits(patterns: Iterable[str], text: str) -> List[str]:
     return hits
 
 
-def detect_refusal(text: str) -> List[str]:
+def detect_refusal(text: str) -> list[str]:
     return _find_hits(REFUSAL_PATTERNS, text)
 
 
-def detect_pii(text: str) -> List[str]:
+def detect_pii(text: str) -> list[str]:
     return _find_hits(PII_PATTERNS, text)
 
 
-def detect_prompt_leak(text: str) -> List[str]:
+def detect_prompt_leak(text: str) -> list[str]:
     return _find_hits(PROMPT_LEAK_PATTERNS, text)
 
 
-def detect_toxicity(text: str) -> List[str]:
+def detect_toxicity(text: str) -> list[str]:
     return _find_hits(TOXICITY_PATTERNS, text)

@@ -9,13 +9,11 @@ import asyncio
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 import httpx
 from openai import AsyncOpenAI
 
 from ..storage import BrainStore
-
 
 # =============================================================================
 # Default Settings (dict-based, weak typing for PoC)
@@ -233,7 +231,7 @@ class RedAgent:
                 response_format={"type": "json_object"},
             )
             return json.loads(resp.choices[0].message.content)
-        except Exception as e:
+        except Exception:
             # Fallback: simple refusal detection
             refusal_keywords = ["cannot", "can't", "sorry", "unable", "won't"]
             is_refusal = any(kw in response.lower() for kw in refusal_keywords)

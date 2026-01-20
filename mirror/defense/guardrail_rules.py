@@ -2,14 +2,13 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import List
 
 from pydantic import BaseModel, Field
 
 
 class GuardrailRules(BaseModel):
-    input_denylists: List[str] = Field(default_factory=list)
-    output_redact_patterns: List[str] = Field(default_factory=list)
+    input_denylists: list[str] = Field(default_factory=list)
+    output_redact_patterns: list[str] = Field(default_factory=list)
 
 
 def load_rules(path: Path) -> GuardrailRules:

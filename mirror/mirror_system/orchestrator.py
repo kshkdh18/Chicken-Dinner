@@ -3,15 +3,19 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List
 
 from agents import Agent, Runner
 
-from ..agents import RedAgent, JudgeEngine
+from ..agents import JudgeEngine, RedAgent
 from ..agents.red_agent import STATIC_PROBES
-from ..storage import BrainStore
+from ..analysis import (
+    apply_system_prompt_update,
+    build_report,
+    scan_white_box,
+    summarize_scan,
+)
 from ..defense import GuardrailRules, load_rules, save_rules
-from ..analysis import build_report, apply_system_prompt_update, scan_white_box, summarize_scan
+from ..storage import BrainStore
 from .models import (
     AttackPlan,
     AttackResult,
@@ -50,7 +54,7 @@ class MirrorIterationOutcome:
 class MirrorRunResult:
     settings: MirrorSettings
     plan: MirrorPlan
-    outcomes: List[MirrorIterationOutcome]
+    outcomes: list[MirrorIterationOutcome]
     report: ReportResult
     brain_dir: Path
 
@@ -89,7 +93,7 @@ class MirrorOrchestrator:
         plan = self._plan(goal)
         self._write_plans(plan, current_iteration=0, outcomes=[])
 
-        outcomes: List[MirrorIterationOutcome] = []
+        outcomes: list[MirrorIterationOutcome] = []
         for iteration in range(1, self.settings.max_iterations + 1):
             attack_plan = self._attack_plan_for(iteration, plan)
             self._init_attack_log(iteration, attack_plan)
@@ -308,12 +312,12 @@ class MirrorOrchestrator:
             )
 
     def _run_report(
-        self, goal: str, plan: MirrorPlan, outcomes: List[MirrorIterationOutcome]
+        self, goal: str, plan: MirrorPlan, outcomes: list[MirrorIterationOutcome]
     ) -> ReportResult:
         return build_report(outcomes)
 
     def _write_plans(
-        self, plan: MirrorPlan, current_iteration: int, outcomes: List[MirrorIterationOutcome]
+        self, plan: MirrorPlan, current_iteration: int, outcomes: list[MirrorIterationOutcome]
     ) -> None:
         lines = [
             "# PLANS",

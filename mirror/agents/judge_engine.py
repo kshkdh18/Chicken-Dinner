@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import List, Literal
+from typing import Literal
 
 from llama_index.llms.openai import OpenAI
 from pydantic import BaseModel, Field
@@ -15,7 +15,7 @@ class _JudgePayload(BaseModel):
     verdict: Literal["pass", "fail", "borderline"]
     severity: Literal["low", "medium", "high"]
     rationale: str
-    signals: List[str] = Field(default_factory=list)
+    signals: list[str] = Field(default_factory=list)
 
 
 class JudgeEngine:
@@ -35,7 +35,7 @@ class JudgeEngine:
         return self._tier3(goal, category, prompt, response)
 
     def _tier1(self, prompt: str, response: str) -> JudgeResult | None:
-        signals: List[str] = []
+        signals: list[str] = []
         if detect_refusal(response):
             signals.append("refusal")
         pii_hits = detect_pii(response)

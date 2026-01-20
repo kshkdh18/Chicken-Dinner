@@ -18,3 +18,40 @@ dependencies = [
     "typer>=0.21.1",
     "uvicorn>=0.40.0",
 ]
+
+[dependency-groups]
+dev = [
+    "black>=25.9.0",
+    "ruff>=0.14.0",
+]
+
+
+[tool.ruff]
+target-version = "py312"
+
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "*.egg-info",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "I",
+    "B",
+    "UP",
+]
+
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["mirror"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
