@@ -43,18 +43,12 @@ async def on_message(msg: cl.Message):
         await cl.Message(content="목표를 입력해주세요.").send()
         return
 
-    mode_action = await cl.AskActionMessage(
-        content="모드를 선택하세요.",
-        actions=[
-            cl.Action(name="MIRROR", value="mirror", label="MIRROR"),
-            cl.Action(name="ATTACK_ONLY", value="attack", label="Attack Only"),
-        ],
-    ).send()
-
-    if not mode_action:  # canceled
+    # 간단 입력으로 모드 수집 (mirror/attack)
+    mode_msg = await cl.AskUserMessage(content="모드를 입력하세요 (mirror | attack)").send()
+    if not mode_msg or not (mode_msg.content or "").strip():
+        await cl.Message(content="모드 입력이 필요합니다. mirror 또는 attack").send()
         return
-
-    mode = mode_action.value
+    mode = (mode_msg.content or "").strip().lower()
 
     if mode == "mirror":
         # Collect minimal settings
@@ -71,7 +65,11 @@ async def on_message(msg: cl.Message):
 
         loop = asyncio.get_event_loop()
         await cl.Message(content=f"MIRROR 실행 중...\nendpoint={settings.endpoint}").send()
-        result = await loop.run_in_executor(None, lambda: orch.run(goal))
+        try:
+            result = await loop.run_in_executor(None, lambda: orch.run(goal))
+        except Exception as e:
+            await cl.Message(content=f"오류 발생: {e}").send()
+            return
 
         brain_dir = result.brain_dir
         await cl.Message(content=f"세션 완료: {brain_dir}\nPLANS: {brain_dir / 'PLANS.md'}").send()
@@ -101,11 +99,14 @@ async def on_message(msg: cl.Message):
     agent = AttackAgent(settings=atk_settings, mutation_level="light", tries=1, concurrency=2)
 
     res_all = []
-    for k in kinds:
-        res = await agent.run_round(k, max_prompts=2)
-        res_all.extend(res)
+    try:
+        for k in kinds:
+            res = await agent.run_round(k, max_prompts=2)
+            res_all.extend(res)
+    except Exception as e:
+        await cl.Message(content=f"공격 실행 중 오류: {e}").send()
+        return
 
     md = AttackAgent.to_markdown(1, res_all)
     await cl.Message(content="공격 결과 요약:").send()
     await cl.Message(content=md).send()
-
