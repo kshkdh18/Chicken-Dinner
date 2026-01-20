@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Tuple
 
 import httpx
 
@@ -32,7 +33,50 @@ def detect_endpoint_format(endpoint: str, timeout: float = 3.0) -> Literal["open
                 return "openai-chat"
     except Exception:
         pass
+    # try simple-rag shape
+    try:
+        payload = {"message": "ping"}
+        with httpx.Client(timeout=timeout) as client:
+            r = client.post(endpoint, json=payload)
+            if r.status_code < 500 and ("answer" in r.json() or isinstance(r.json(), dict)):
+                return "simple-rag"
+    except Exception:
+        pass
     return "simple-rag"
+
+
+def discover_endpoint(timeout: float = 3.0) -> Tuple[str, Literal["openai-chat", "simple-rag"]]:
+    """Find a reasonable default endpoint without user input.
+
+    Priority:
+    1) OPENAI_BASE_URL env → {base}/chat/completions (openai-chat)
+    2) localhost:8000/chat (simple-rag)
+    3) localhost:8080/v1/chat/completions (openai-chat; e.g., guardrail proxy)
+    """
+    base = os.getenv("OPENAI_BASE_URL")
+    if base:
+        target = base.rstrip("/") + "/chat/completions"
+        return target, "openai-chat"
+    # try simple-rag default
+    cand_simple = "http://127.0.0.1:8000/chat"
+    try:
+        with httpx.Client(timeout=timeout) as client:
+            r = client.post(cand_simple, json={"message": "ping"})
+            if r.status_code < 500:
+                return cand_simple, "simple-rag"
+    except Exception:
+        pass
+    # try openai proxy default
+    cand_openai = "http://127.0.0.1:8080/v1/chat/completions"
+    try:
+        with httpx.Client(timeout=timeout) as client:
+            r = client.post(cand_openai, json={"model": "gpt-4o-mini", "messages": [{"role": "user", "content": "ping"}]})
+            if r.status_code < 500:
+                return cand_openai, "openai-chat"
+    except Exception:
+        pass
+    # default fallback
+    return cand_simple, "simple-rag"
 
 
 def _run_once(goal: str, endpoint: str, endpoint_format: str, session_id: str, mode: str,
@@ -81,8 +125,10 @@ def write_comparison(off_dir: Path, on_dir: Path, out_path: Path) -> None:
 
 def run_autopilot(goal: str, endpoint: str | None = None, iterations: int = 3,
                   include_toxic: bool = True) -> dict:
-    endpoint = endpoint or "http://127.0.0.1:8000/chat"
-    fmt = detect_endpoint_format(endpoint)
+    if endpoint:
+        fmt = detect_endpoint_format(endpoint)
+    else:
+        endpoint, fmt = discover_endpoint()
 
     off_id = f"auto_off_{int(time.time())}"
     on_id = f"auto_on_{int(time.time())}"
@@ -101,4 +147,3 @@ def run_autopilot(goal: str, endpoint: str | None = None, iterations: int = 3,
         "on_dir": str(on.brain_dir),
         "comparison": str(compare_path),
     }
-
