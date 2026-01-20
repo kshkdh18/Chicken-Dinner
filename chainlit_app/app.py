@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import List
 
 import chainlit as cl
+import re
+import httpx
 from dotenv import load_dotenv
 
 from mirror.mirror_orchestrator import MirrorOrchestrator, MirrorRunConfig
@@ -30,10 +32,29 @@ def _default_settings() -> MirrorSettings:
     )
 
 
+def _is_url(s: str) -> bool:
+    return bool(re.match(r"^https?://", s))
+
+
+async def _show_menu():
+    await cl.Message(
+        content=(
+            "모드를 선택하세요.\n- MIRROR: 블랙박스(`/chat`) 평가 루프\n"
+            "- Attack Only: OpenAI Chat 호환(`/v1/chat/completions`) 공격\n"
+            "- Report: 세션 리포트 생성"
+        ),
+        actions=[
+            cl.Action(name="pick_mode", value="mirror", label="MIRROR", payload={"mode": "mirror"}),
+            cl.Action(name="pick_mode", value="attack", label="Attack Only", payload={"mode": "attack"}),
+            cl.Action(name="pick_mode", value="report", label="Report", payload={"mode": "report"}),
+        ],
+    ).send()
+
+
 @cl.on_chat_start
 async def on_chat_start():
     load_dotenv()
-    await cl.Message(content="MIRROR Chainlit에 오신 것을 환영합니다!\n목표(Goal)를 입력하고 모드를 선택하세요.").send()
+    await cl.Message(content="MIRROR Chainlit에 오신 것을 환영합니다!\n먼저 목표(Goal)를 입력하세요.").send()
 
 
 @cl.on_message
@@ -43,17 +64,31 @@ async def on_message(msg: cl.Message):
         await cl.Message(content="목표를 입력해주세요.").send()
         return
 
-    # 간단 입력으로 모드 수집 (mirror/attack)
-    mode_msg = await cl.AskUserMessage(content="모드를 입력하세요 (mirror | attack)").send()
-    if not mode_msg or not (mode_msg.content or "").strip():
-        await cl.Message(content="모드 입력이 필요합니다. mirror 또는 attack").send()
-        return
-    mode = (mode_msg.content or "").strip().lower()
+    cl.user_session.set("goal", goal)
+    await _show_menu()
+    return
+
+
+@cl.action_callback("pick_mode")
+async def on_pick_mode(action: cl.Action):
+    goal = cl.user_session.get("goal") or "Security assessment"
+    mode = (action.payload or {}).get("mode") or action.value or ""
+    mode = str(mode).lower()
 
     if mode == "mirror":
         # Collect minimal settings
-        ep_msg = await cl.AskUserMessage(content="Endpoint (default: http://127.0.0.1:8000/chat)").send()
+        ep_msg = await cl.AskUserMessage(content="Endpoint (기본: http://127.0.0.1:8000/chat)").send()
         endpoint = ep_msg.content.strip() if ep_msg and ep_msg.content.strip() else "http://127.0.0.1:8000/chat"
+        if not _is_url(endpoint):
+            await cl.Message(content=f"유효한 URL이 아닙니다: {endpoint}").send()
+            return
+        # 가벼운 헬스체크
+        try:
+            async with httpx.AsyncClient(timeout=5) as client:
+                _ = await client.post(endpoint, json={"message": "health"})
+        except Exception:
+            await cl.Message(content=f"엔드포인트 연결 실패: {endpoint}").send()
+            return
         settings = _default_settings()
         settings.endpoint = endpoint
 
@@ -90,9 +125,12 @@ async def on_message(msg: cl.Message):
         return
 
     # Attack only (OpenAI Chat compatible endpoint)
-    ep_msg = await cl.AskUserMessage(content="OpenAI Chat 호환 endpoint (ex: http://127.0.0.1:8080/v1/chat/completions)").send()
+    ep_msg = await cl.AskUserMessage(content="OpenAI Chat 호환 endpoint (예: http://127.0.0.1:8080/v1/chat/completions)").send()
     endpoint = ep_msg.content.strip() if ep_msg and ep_msg.content.strip() else "http://127.0.0.1:8080/v1/chat/completions"
-    kinds_msg = await cl.AskUserMessage(content="전략(comma): dan,toxicity,prompt_injection,pii_leak").send()
+    if not _is_url(endpoint):
+        await cl.Message(content=f"유효한 URL이 아닙니다: {endpoint}").send()
+        return
+    kinds_msg = await cl.AskUserMessage(content="전략(comma): dan,toxicity,prompt_injection,pii_leak (기본: dan,prompt_injection)").send()
     kinds = [k.strip() for k in (kinds_msg.content if kinds_msg else "dan,prompt_injection").split(",") if k.strip()]
 
     atk_settings = AttackSettings(endpoint=endpoint, model="gpt-4o-mini")
@@ -110,3 +148,8 @@ async def on_message(msg: cl.Message):
     md = AttackAgent.to_markdown(1, res_all)
     await cl.Message(content="공격 결과 요약:").send()
     await cl.Message(content=md).send()
+    await _show_menu()
+    return
+
+    # Report mode
+    # (action handler 상단 분기에서 처리)
