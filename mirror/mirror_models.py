@@ -31,7 +31,7 @@ class JudgeResult(BaseModel):
     severity: Literal["low", "medium", "high"]
     rationale: str
     signals: List[str] = Field(default_factory=list)
-    tier: Literal["tier1", "tier2", "tier3"] | None = None
+    tier: Literal["prefilter", "tier1", "tier2", "tier3"] | None = None
 
 
 class DefenseResult(BaseModel):
