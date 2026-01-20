@@ -116,15 +116,16 @@ class MirrorOrchestrator:
 
     def _plan(self, goal: str) -> MirrorPlan:
         planner = MirrorPlannerWorkflow(model=self.settings.planner_model or self.settings.model)
-        handler = planner.run(
-            goal=goal,
-            attack_categories=self.settings.attack_categories,
-            max_iterations=self.settings.max_iterations,
-        )
-        async def _await_handler():
+
+        async def _runner() -> MirrorPlan:
+            handler = planner.run(
+                goal=goal,
+                attack_categories=self.settings.attack_categories,
+                max_iterations=self.settings.max_iterations,
+            )
             return await handler
 
-        return asyncio.run(_await_handler())
+        return asyncio.run(_runner())
 
     def _attack_plan_for(self, iteration: int, plan: MirrorPlan) -> AttackPlan:
         if iteration - 1 < len(plan.iterations):
