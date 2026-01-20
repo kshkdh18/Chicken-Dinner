@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from openai import OpenAI
 from pydantic import BaseModel, Field
 
-from .guardrail_rules import GuardrailRules, load_rules
+from mirror.defense.guardrail_rules import GuardrailRules, load_rules
 
 
 class ChatMessage(BaseModel):

@@ -40,25 +40,38 @@ OpenAI Agents SDK 기반의 **Plan/Worker 오케스트레이터**, LlamaIndex Wo
 개발 시 주로 참고해야 할 핵심 모듈의 위치입니다.
 
 ### Core (기반 프레임워크)
-*   `mirror/config.py`: 설정 관리 (`OrchestratorConfig`, `workspace_root`, `brain_root` 등).
-*   `mirror/orchestrator.py`: Plan/Worker 루프를 제어하는 메인 오케스트레이터.
-*   `mirror/tools.py`: 파일 시스템 및 쉘 실행을 위한 기본 도구 모음.
-*   `mirror/prompts.py`: 에이전트(Planner/Worker)용 시스템 프롬프트.
-*   `mirror/workspace.py`: 파일 접근 보안 및 워크스페이스 경계 관리.
+*   `mirror/core/config.py`: 설정 관리 (`OrchestratorConfig`, `ApprovalMode` 등).
+*   `mirror/core/orchestrator.py`: Plan/Worker 루프를 제어하는 메인 오케스트레이터.
+*   `mirror/core/tools.py`: 파일 시스템 및 쉘 실행을 위한 기본 도구 모음.
+*   `mirror/core/prompts.py`: 에이전트(Planner/Worker)용 시스템 프롬프트.
+*   `mirror/core/models.py`: 기본 데이터 모델 정의.
+*   `mirror/core/progress.py`: 진행 상황 출력 유틸리티.
+
+### Storage (저장소 관리)
+*   `mirror/storage/brain.py`: Brain 저장소 유틸리티 (`BrainStore`).
+*   `mirror/storage/workspace.py`: 파일 접근 보안 및 워크스페이스 경계 관리.
 
 ### MIRROR System (Red-teaming 구현체)
-*   `mirror/mirror_orchestrator.py`: MIRROR 에이전트 루프 진입점.
-*   `mirror/mirror_planner.py`: LlamaIndex Workflow 기반의 특화된 플래너.
-*   `mirror/mirror_settings.py`: MIRROR 전용 설정 로직.
-*   `mirror/mirror_models.py`: 데이터 모델 정의.
-*   `mirror/attack_engine.py`: 동적 공격 생성 + Fan-Out + 다중 턴 공격 실행 엔진.
-*   `mirror/judge_engine.py`: Tier 1→2→3 계층 심판 파이프라인.
-*   `mirror/reporting.py`: 지표 계산 및 OWASP/NIST 매핑 리포트 생성.
-*   `mirror/detectors.py`: 규칙 기반 탐지기 모음 (refusal/PII/prompt leak 등).
-*   `mirror/white_box.py`: White-Box 스캔 및 시스템 프롬프트 업데이트 지원.
-*   `mirror/mirror_tools.py`: 공격 및 로그 분석을 위한 전용 도구 (`mutate_prompt`, `call_target` 등).
-*   `mirror/guardrail.py`: FastAPI 기반 가드레일 프록시 서버.
-*   `mirror/brain.py`: 저장소 유틸리티.
+*   `mirror/mirror_system/orchestrator.py`: MIRROR 에이전트 루프 진입점.
+*   `mirror/mirror_system/planner.py`: LlamaIndex Workflow 기반의 특화된 플래너.
+*   `mirror/mirror_system/settings.py`: MIRROR 전용 설정 로직.
+*   `mirror/mirror_system/models.py`: MIRROR 데이터 모델 정의.
+*   `mirror/mirror_system/tools.py`: 공격 및 로그 분석을 위한 전용 도구 (`mutate_attack_prompt`, `call_target` 등).
+
+### Agents (에이전트)
+*   `mirror/agents/attack_engine.py`: 동적 공격 생성 + Fan-Out + 다중 턴 공격 실행 엔진.
+*   `mirror/agents/judge_engine.py`: Tier 1→2→3 계층 심판 파이프라인.
+*   `mirror/agents/attack_library.py`: 공격 패턴 라이브러리.
+*   `mirror/agents/attack_utils.py`: 공격 유틸리티 (변이, 호출 등).
+
+### Defense (방어 시스템)
+*   `mirror/defense/detectors.py`: 규칙 기반 탐지기 모음 (refusal/PII/prompt leak 등).
+*   `mirror/defense/guardrail.py`: FastAPI 기반 가드레일 프록시 서버.
+*   `mirror/defense/guardrail_rules.py`: 가드레일 규칙 관리.
+
+### Analysis (분석 및 리포팅)
+*   `mirror/analysis/reporting.py`: 지표 계산 및 OWASP/NIST 매핑 리포트 생성.
+*   `mirror/analysis/white_box.py`: White-Box 스캔 및 시스템 프롬프트 업데이트 지원.
 
 ---
 
