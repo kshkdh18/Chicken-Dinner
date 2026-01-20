@@ -49,6 +49,25 @@ def _run_mirror(goal: str, session_id: str, mode: str, iterations: int, include_
     return str(result.brain_dir), session_id
 
 
+def _tail_events(brain_dir: Path, max_lines: int = 300) -> List[dict]:
+    p = brain_dir / "events.jsonl"
+    if not p.exists():
+        return []
+    try:
+        lines = p.read_text(encoding="utf-8").splitlines()[-max_lines:]
+        out = []
+        import json
+
+        for ln in lines:
+            try:
+                out.append(json.loads(ln))
+            except Exception:
+                continue
+        return out
+    except Exception:
+        return []
+
+
 st.set_page_config(page_title="MIRROR Autopilot", layout="wide")
 st.title("MIRROR Autopilot Demo")
 st.write("입력 없이 OFF→ON 두 세션을 자동 실행하고, 진행 상황과 지표를 보여줍니다.")
@@ -117,16 +136,27 @@ live_fut = st.session_state.get("live_future")
 if live_id and live_fut:
     st.info(f"LIVE 실행 중… 세션: {live_id}")
     brain_dir = Path.home() / ".mirror" / "brain" / live_id
-    colL, = st.columns(1)
-    with colL:
-        placeholder = st.empty()
-        # 한 번 렌더하고 자동 새로고침
+    left, right = st.columns(2)
+    with left:
+        st.subheader("Timeline (events)")
+        events = _tail_events(brain_dir)
+        if not events:
+            st.write("(waiting for events…)")
+        else:
+            for ev in events[-100:]:
+                et = ev.get("type")
+                ts = ev.get("ts")
+                st.markdown(f"**{et}** — {ts}")
+                st.code(ev, language="json")
+    with right:
+        st.subheader("Latest Logs")
         plans, attacks = _brain_files(brain_dir)
-        md = _read_text(plans)
+        st.caption(str(plans))
+        st.code(_read_text(plans), language="markdown")
         if attacks:
-            md += "\n\n" + _read_text(attacks[-1])
-        placeholder.code(md or "(waiting for logs…)\n", language="markdown")
-        # 자동 리프레시
-        if not live_fut.done():
-            time.sleep(1.0)
-            st.experimental_rerun()
+            st.caption(str(attacks[-1]))
+            st.code(_read_text(attacks[-1]), language="markdown")
+    # 자동 리프레시
+    if not live_fut.done():
+        time.sleep(1.0)
+        st.experimental_rerun()

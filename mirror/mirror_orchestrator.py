@@ -28,6 +28,7 @@ from .white_box import apply_system_prompt_update, scan_white_box, summarize_sca
 import re
 from attack_agent.attack_agent import AttackAgent as CustomAttackAgent
 from attack_agent.attack_agent import AttackResult as CustomAttackResult
+from .events import append_event
 
 
 @dataclass(frozen=True)
@@ -86,15 +87,20 @@ class MirrorOrchestrator:
     def run(self, goal: str) -> MirrorRunResult:
         plan = self._plan(goal)
         self._write_plans(plan, current_iteration=0, outcomes=[])
+        append_event(self.brain.root, "PlanReady", {"objective": plan.objective, "iterations": len(plan.iterations)})
 
         outcomes: List[MirrorIterationOutcome] = []
         for iteration in range(1, self.settings.max_iterations + 1):
             attack_plan = self._attack_plan_for(iteration, plan)
             self._init_attack_log(iteration, attack_plan)
+            append_event(self.brain.root, "AttackStart", {"iter": iteration, "category": attack_plan.category})
 
             attack = self._run_attack(iteration, goal, attack_plan)
+            append_event(self.brain.root, "AttackChosen", {"iter": iteration, "prompt": attack.prompt, "notes": attack.attack_notes})
             judge = self._run_judge(iteration, goal, attack_plan, attack)
+            append_event(self.brain.root, "JudgeResult", {"iter": iteration, "verdict": judge.verdict, "severity": judge.severity, "signals": judge.signals, "tier": judge.tier})
             defense = self._run_defense(iteration, goal, attack_plan, attack, judge)
+            append_event(self.brain.root, "DefenseUpdate", {"iter": iteration, "actions": defense.actions, "input": defense.input_patterns, "output": defense.output_patterns})
             self._apply_defense(iteration, defense)
 
             outcomes.append(
@@ -110,6 +116,7 @@ class MirrorOrchestrator:
 
         report = self._run_report(goal, plan, outcomes)
         self._write_report(report)
+        append_event(self.brain.root, "ReportReady", {"metrics": report.metrics})
 
         return MirrorRunResult(
             settings=self.settings,
