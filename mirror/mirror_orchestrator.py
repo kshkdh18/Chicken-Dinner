@@ -22,13 +22,14 @@ from .mirror_models import (
 )
 from .mirror_planner import MirrorPlannerWorkflow
 from .mirror_settings import MirrorSettings
-from .mirror_tools import build_defense_tools
+from .mirror_tools import build_defense_tools, build_reporter_tools
 from .reporting import build_report
 from .white_box import apply_system_prompt_update, scan_white_box, summarize_scan
 import re
 from attack_agent.attack_agent import AttackAgent as CustomAttackAgent
 from attack_agent.attack_agent import AttackResult as CustomAttackResult
 from .events import append_event
+from .prompts import session_reporter_instructions
 
 
 @dataclass(frozen=True)
@@ -70,6 +71,7 @@ class MirrorOrchestrator:
         self.attack_engine = AttackEngine(settings)
         self.toxic_engine = ToxicAdaptiveAttackEngine(settings)
         self.judge_engine = JudgeEngine(settings)
+        # 모드에 따라 white-box 경로는 설정값 사용(없으면 None)
         self.white_box_root = (
             Path(settings.white_box_path).expanduser().resolve()
             if settings.white_box_path
@@ -234,13 +236,14 @@ class MirrorOrchestrator:
             )
             chosen = attack_run.chosen
             final_turn = chosen.final_turn
+            # Include the originating base prompt in notes for clarity
             result = AttackResult(
                 category=attack_plan.category,
                 prompt=final_turn.prompt,
                 mutated_prompt=final_turn.mutated_prompt,
                 response=final_turn.response,
                 attack_notes=(
-                    f"toxic_small_llm=true; turns={len(chosen.turns)}; score={final_turn.score:.2f}"
+                    f"toxic_small_llm=true; turns={len(chosen.turns)}; score={final_turn.score:.2f}; base_prompt={chosen.base_prompt}"
                 ),
                 success_signal="toxicity" if final_turn.score >= self.settings.toxic_threshold else None,
                 toxicity_score=final_turn.score,
@@ -329,12 +332,17 @@ class MirrorOrchestrator:
             "secrets": _hits(secret_markers, combined),
             "jailbreak": _hits(jailbreak_markers, combined),
         }
+        # Flatten to only the signal names that actually fired (had hits)
+        fired_signals: List[str] = [name for name, hits in detected.items() if hits]
+        # Map concrete secret leaks to prompt_leak for judge prefilter semantics
+        if "secrets" in fired_signals and "prompt_leak" not in fired_signals:
+            fired_signals.append("prompt_leak")
         result = self.judge_engine.judge(
             goal=goal,
             category=attack_plan.category,
             prompt=attack.prompt,
             response=attack.response,
-            signals=detected,
+            signals=fired_signals,
         )
 
         self.brain.append_text(
@@ -439,7 +447,26 @@ class MirrorOrchestrator:
     def _run_report(
         self, goal: str, plan: MirrorPlan, outcomes: List[MirrorIterationOutcome]
     ) -> ReportResult:
-        return build_report(outcomes)
+        # 1) 구조화 메트릭/맵핑 계산
+        report = build_report(outcomes)
+        # 2) 세션 리포터 에이전트로 Markdown 생성
+        try:
+            reporter = Agent(
+                name="Session Reporter",
+                instructions=session_reporter_instructions(str(self.brain.root)),
+                tools=build_reporter_tools(self.brain),
+                model=self.settings.reporter_model or self.settings.model or self.config.model,
+            )
+            prompt = (
+                "Generate a polished Markdown report for this session. "
+                "Use tools to read PLANS.md and all ATTACK_n.md files and compute metrics."
+            )
+            run = Runner.run_sync(reporter, input=prompt, max_turns=self.config.max_turns)
+            agent_md = str(run.final_output)
+            report.agent_markdown = agent_md
+        except Exception:
+            report.agent_markdown = None
+        return report
 
     def _write_plans(
         self, plan: MirrorPlan, current_iteration: int, outcomes: List[MirrorIterationOutcome]
@@ -476,40 +503,45 @@ class MirrorOrchestrator:
         self.brain.write_text(self.brain.plans_path(), "\n".join(lines) + "\n")
 
     def _write_report(self, report: ReportResult) -> None:
-        lines = [
-            "# MIRROR Report",
-            "",
-            "## Summary",
-            report.summary,
-            "",
-            "## Findings",
-        ]
-        if report.findings:
-            lines.extend(f"- {item}" for item in report.findings)
+        # REPORT.md: 에이전트 Markdown이 있으면 우선 사용
+        if report.agent_markdown:
+            self.brain.write_text(self.brain.report_path(), str(report.agent_markdown))
         else:
-            lines.append("- No findings reported.")
-        lines.extend(["", "## Recommendations"])
-        if report.recommendations:
-            lines.extend(f"- {item}" for item in report.recommendations)
-        else:
-            lines.append("- No recommendations provided.")
+            lines = [
+                "# MIRROR Report",
+                "",
+                "## Summary",
+                report.summary,
+                "",
+                "## Findings",
+            ]
+            if report.findings:
+                lines.extend(f"- {item}" for item in report.findings)
+            else:
+                lines.append("- No findings reported.")
+            lines.extend(["", "## Recommendations"])
+            if report.recommendations:
+                lines.extend(f"- {item}" for item in report.recommendations)
+            else:
+                lines.append("- No recommendations provided.")
 
-        if report.metrics:
-            lines.extend(["", "## Metrics"])
-            for key, value in report.metrics.items():
-                lines.append(f"- {key}: {value}")
+            if report.metrics:
+                lines.extend(["", "## Metrics"])
+                for key, value in report.metrics.items():
+                    lines.append(f"- {key}: {value}")
 
-        if report.owasp_mapping:
-            lines.extend(["", "## OWASP LLM Top 10 Mapping"])
-            for category, mappings in report.owasp_mapping.items():
-                lines.append(f"- {category}: {', '.join(mappings)}")
+            if report.owasp_mapping:
+                lines.extend(["", "## OWASP LLM Top 10 Mapping"])
+                for category, mappings in report.owasp_mapping.items():
+                    lines.append(f"- {category}: {', '.join(mappings)}")
 
-        if report.nist_mapping:
-            lines.extend(["", "## NIST AI RMF Mapping"])
-            for category, mappings in report.nist_mapping.items():
-                lines.append(f"- {category}: {', '.join(mappings)}")
+            if report.nist_mapping:
+                lines.extend(["", "## NIST AI RMF Mapping"])
+                for category, mappings in report.nist_mapping.items():
+                    lines.append(f"- {category}: {', '.join(mappings)}")
 
-        self.brain.write_text(self.brain.report_path(), "\n".join(lines) + "\n")
+            self.brain.write_text(self.brain.report_path(), "\n".join(lines) + "\n")
+        # 항상 REPORT.json은 유지
         self.brain.write_text(
             self.brain.report_json_path(), report.model_dump_json(indent=2) + "\n"
         )

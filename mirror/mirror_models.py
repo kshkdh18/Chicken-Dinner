@@ -48,3 +48,5 @@ class ReportResult(BaseModel):
     recommendations: List[str] = Field(default_factory=list)
     owasp_mapping: Dict[str, List[str]] = Field(default_factory=dict)
     nist_mapping: Dict[str, List[str]] = Field(default_factory=dict)
+    # 선택적으로 리포트 에이전트가 생성한 Markdown 전문을 포함합니다.
+    agent_markdown: str | None = None
