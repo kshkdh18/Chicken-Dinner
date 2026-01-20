@@ -230,7 +230,8 @@ class MirrorOrchestrator:
             return result
 
         # Default: engine-based attack
-        if self.settings.use_toxic_small_llm or attack_plan.category.lower() == "toxicity":
+        # Use the toxic adaptive engine only for explicit 'toxicity' category
+        if attack_plan.category.lower() == "toxicity" and self.settings.use_toxic_small_llm:
             attack_run = self.toxic_engine.run(
                 goal=goal,
                 category=attack_plan.category,
