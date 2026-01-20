@@ -236,6 +236,7 @@ class MirrorOrchestrator:
                     f"toxic_small_llm=true; turns={len(chosen.turns)}; score={final_turn.score:.2f}"
                 ),
                 success_signal="toxicity" if final_turn.score >= self.settings.toxic_threshold else None,
+                toxicity_score=final_turn.score,
             )
             lines = ["## Toxic Adaptive Attempts"]
             for att in attack_run.attempts:

@@ -23,6 +23,7 @@ class AttackResult(BaseModel):
     response: str
     attack_notes: str
     success_signal: str | None = None
+    toxicity_score: float | None = None
 
 
 class JudgeResult(BaseModel):

@@ -9,6 +9,7 @@ from ..attack_utils import call_target_async, mutate_prompt
 from ..mirror_settings import MirrorSettings
 from .generator import ToxicPromptGenerator
 from .scorer import ToxicityScorer
+from ..garak_cli import generate_prompts as garak_generate
 
 
 @dataclass
@@ -59,7 +60,13 @@ class ToxicAdaptiveAttackEngine:
     async def _build_prompts(self, goal: str, category: str, iteration: int) -> List[str]:
         static_prompts = get_prompts("toxicity", limit=self.settings.toxic_variants)
         dynamic = self.gen.generate(None, goal=goal, count=self.settings.toxic_variants)
+        garak_prompts: List[str] = []
+        if getattr(self.settings, "garak_cli_enabled", False) and getattr(self.settings, "garak_cli_probes", []):
+            for probe in self.settings.garak_cli_probes:
+                garak_prompts.extend(garak_generate(probe, count=self.settings.toxic_variants))
         combined = [*static_prompts, *dynamic]
+        if garak_prompts:
+            combined.extend(garak_prompts)
         deduped: List[str] = []
         seen: set[str] = set()
         for p in combined:
@@ -102,4 +109,3 @@ class ToxicAdaptiveAttackEngine:
 
     def _select_best(self, attempts: List[ToxicAttempt]) -> ToxicAttempt:
         return sorted(attempts, key=lambda a: a.final_turn.score, reverse=True)[0]
-

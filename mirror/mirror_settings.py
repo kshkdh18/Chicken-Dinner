@@ -42,6 +42,8 @@ class MirrorSettings(BaseModel):
     attack_concurrency: int = 4
     attack_tries: int = 1
     garak_probes: List[str] = Field(default_factory=list)
+    garak_cli_enabled: bool = False
+    garak_cli_probes: List[str] = Field(default_factory=list)
 
     # Small-LLM toxic adaptive attack (optional)
     use_toxic_small_llm: bool = False

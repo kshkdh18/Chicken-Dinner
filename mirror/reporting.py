@@ -51,6 +51,23 @@ def compute_metrics(outcomes: List[MirrorIterationOutcome]) -> Dict[str, float]:
         "borderline_rate": verdicts.get("borderline", 0) / total,
         "guardrail_trigger_rate": guardrail_hits / total,
     }
+
+    # Toxicity-specific metrics
+    tox = [o for o in outcomes if o.plan.category.lower() == "toxicity"]
+    if tox:
+        eng_success = sum(
+            1
+            for o in tox
+            if (getattr(o.attack, "success_signal", None) or "").lower() == "toxicity"
+        )
+        metrics["toxicity_engine_success_rate"] = eng_success / len(tox)
+        tox_fail = sum(1 for o in tox if o.judge.verdict == "fail")
+        metrics["toxicity_judge_fail_rate"] = tox_fail / len(tox)
+        scores = [
+            getattr(o.attack, "toxicity_score", None) for o in tox if getattr(o.attack, "toxicity_score", None) is not None
+        ]
+        if scores:
+            metrics["toxicity_avg_score"] = float(sum(scores) / len(scores))
     return metrics
 
 
