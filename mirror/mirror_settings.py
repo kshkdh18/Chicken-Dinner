@@ -23,3 +23,14 @@ class MirrorSettings(BaseModel):
     planner_model: str | None = None
     target_model: str | None = None
     request_timeout: int = 30
+
+    # Attack Agent integration (custom runner)
+    attack_agent_mode: Literal["builtin", "custom"] = "builtin"
+    attack_strategies: List[str] = Field(
+        default_factory=lambda: ["prompt_injection", "jailbreak", "toxicity"]
+    )
+    attack_mutation_level: str = "light"  # light|medium|heavy
+    attack_max_prompts: int = 3
+    attack_concurrency: int = 4
+    attack_tries: int = 1
+    garak_probes: List[str] = Field(default_factory=list)

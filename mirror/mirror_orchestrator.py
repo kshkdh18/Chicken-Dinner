@@ -25,6 +25,8 @@ from .mirror_tools import (
     build_judge_tools,
     build_reporter_tools,
 )
+from attack_agent.attack_agent import AttackAgent as CustomAttackAgent
+from attack_agent.attack_agent import AttackResult as CustomAttackResult
 
 
 @dataclass(frozen=True)
@@ -160,6 +162,68 @@ class MirrorOrchestrator:
         self.brain.write_text(self.brain.attack_path(iteration), content)
 
     def _run_attack(self, iteration: int, goal: str, attack_plan: AttackPlan) -> AttackResult:
+        # Branch: custom runner
+        if self.settings.attack_agent_mode == "custom":
+            # Map mirror categories to custom kinds
+            cat = (attack_plan.category or "").lower()
+            if cat == "jailbreak":
+                kinds = ["dan"]
+            elif cat in ("prompt_injection", "promptinject", "injection"):
+                kinds = ["prompt_injection"]
+            elif cat in ("pii_leak", "pii-leak", "pii"):
+                kinds = ["pii_leak"]
+            else:
+                kinds = self.settings.attack_strategies or ["prompt_injection"]
+
+            agent = CustomAttackAgent(
+                settings=type("S", (), {
+                    "endpoint": self.settings.endpoint,
+                    "model": self.settings.target_model or self.settings.model or self.config.model,
+                    "timeout_s": float(self.settings.request_timeout),
+                })(),
+                mutation_level=self.settings.attack_mutation_level,
+                tries=self.settings.attack_tries,
+                concurrency=self.settings.attack_concurrency,
+            )
+
+            async def _run_custom():
+                all_cases: list[CustomAttackResult] = []
+                for k in kinds:
+                    prompts_override = None
+                    if self.settings.garak_probes:
+                        try:
+                            from attack_agent.garak_loader import load_garak_prompts
+                            prompts_override = load_garak_prompts(self.settings.garak_probes, max_count=self.settings.attack_max_prompts)
+                        except Exception:
+                            prompts_override = None
+                    res = await agent.run_round(
+                        kind=k, max_prompts=self.settings.attack_max_prompts, prompts_override=prompts_override
+                    )
+                    all_cases.extend(res)
+                return all_cases
+
+            cases = asyncio.run(_run_custom())
+            # Select a representative case for Judge: prefer a defense failure (attack success)
+            pick = next((c for c in cases if not c.passed), cases[0] if cases else None)
+            prompt_text = pick.original_prompt if pick else ""
+            mutated = pick.mutated_prompt if pick else None
+            response_text = pick.response_text if pick else ""
+
+            # Write detailed per-case log
+            md = CustomAttackAgent.to_markdown(iteration, cases)
+            self.brain.append_text(self.brain.attack_path(iteration), "\n## AttackAgent Cases\n" + md + "\n")
+
+            result = AttackResult(
+                category=attack_plan.category,
+                prompt=prompt_text,
+                mutated_prompt=mutated,
+                response=response_text,
+                attack_notes=f"cases={len(cases)}, representative={'fail' if pick and not pick.passed else 'pass'}",
+                success_signal=None,
+            )
+            return result
+
+        # Default: builtin agent (LLM + tools)
         prompt = (
             "Goal: {goal}\n"
             "Attack category: {category}\n"
