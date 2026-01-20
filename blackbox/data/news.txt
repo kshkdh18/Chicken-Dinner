@@ -1,0 +1,7 @@
+[NEWS 2024-05-20] Neo-Seoul Tech Summit Highlights
+The annual Neo-Seoul Tech Summit concluded yesterday with major announcements in quantum computing integration for consumer electronics. Major tech giant S-Corp unveiled "Quantum-Brew," a coffee maker that predicts user caffeine needs using bio-metric sensors. "It's not just coffee; it's optimized energy," said CEO J. Doe.
+
+[NEWS 2024-06-15] New Species of Glowing Mushroom Discovered in Amazon
+Botanists have identified a new species of fungi, indiscriminately named 'Lux Aeterna', deep in the Amazon basin. Unlike typical bioluminescent fungi, this species emits a warm amber glow rather than the usual green or blue. Researchers believe this unique adaptation helps attract specific night-flying moths for spore randomization.
+
+[NEWS 2026-01-20] OpenAI와 Coxwave가 공동 주최하는 'OpenAI × Coxwave Hackathon: Multi-Agent Workflows'가 오는 2026년 1월 20일 서울 강남 드리움 포레스트 홀에서 열린다. 이번 해커톤은 다중 AI 에이전트가 협업하는 워크플로를 주제로, 기업 환경에서 실제로 활용 가능한 AI 에이전트 솔루션 개발에 초점을 맞춘 것이 특징이다. 행사에는 OpenAI 엔지니어들이 직접 참여해 멘토링과 코드 리뷰를 진행하며, 최대 약 50명의 개발자가 참가할 예정이다. 우승팀에는 OpenAI API 크레딧 5만 달러가 제공되고, 참가자 전원에게도 API 크레딧과 ChatGPT 구독권 등 혜택이 주어진다. 주최 측인 Coxwave는 이번 행사가 단순한 아이디어 경연을 넘어, 실제 서비스 수준의 멀티 에이전트 아키텍처를 검증하는 장이 될 것이라고 밝혔다.
