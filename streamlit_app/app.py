@@ -16,6 +16,7 @@ import streamlit as st
 from dotenv import load_dotenv
 
 from mirror.autopilot import discover_endpoint, write_comparison
+import httpx
 from mirror.mirror_system.orchestrator import MirrorOrchestrator, MirrorRunConfig
 from mirror.mirror_system.settings import MirrorSettings
 
@@ -80,6 +81,18 @@ def _compute_live_metrics(events: List[dict]) -> dict:
     }
 
 
+def _try_guardrail_endpoint(timeout: float = 2.0) -> tuple[str | None, str | None]:
+    cand = "http://127.0.0.1:8080/v1/chat/completions"
+    try:
+        with httpx.Client(timeout=timeout) as client:
+            r = client.post(cand, json={"model": "gpt-4o-mini", "messages": [{"role": "user", "content": "ping"}]})
+            if r.status_code < 500 and "choices" in r.json():
+                return cand, "openai-chat"
+    except Exception:
+        pass
+    return None, None
+
+
 def _run_auto_pair(goal: str, iterations: int, include_toxic: bool, off_id: str, on_id: str) -> dict:
     endpoint, fmt = discover_endpoint()
     # OFF
@@ -91,9 +104,10 @@ def _run_auto_pair(goal: str, iterations: int, include_toxic: bool, off_id: str,
     config_off = MirrorRunConfig(workspace_root=Path(".").resolve(), session_id=off_id)
     orch_off = MirrorOrchestrator(config_off, settings_off)
     res_off = orch_off.run(goal)
-    # ON
+    # ON (prefer guardrail proxy if available)
+    on_ep, on_fmt = _try_guardrail_endpoint()
     settings_on = MirrorSettings(
-        mode="guardrail-on", endpoint=endpoint, endpoint_format=fmt,
+        mode="guardrail-on", endpoint=(on_ep or endpoint), endpoint_format=(on_fmt or fmt),
         max_iterations=iterations, use_toxic_small_llm=include_toxic,
         judge_model="gpt-4o-mini", defense_model="gpt-4o-mini", reporter_model="gpt-4o-mini",
     )
