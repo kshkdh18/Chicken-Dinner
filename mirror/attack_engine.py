@@ -103,8 +103,8 @@ class AttackEngine:
             f"Iteration: {iteration}\n"
             f"Generate {count} diverse prompts."
         )
-        raw = (await self._llm.acomplete(system_prompt + "\n\n" + user_prompt)).text
         try:
+            raw = (await self._llm.acomplete(system_prompt + "\n\n" + user_prompt)).text
             data = json.loads(raw)
             payload = _AttackPromptPayload(**data)
             return payload.prompts[:count]
@@ -204,8 +204,8 @@ class AttackEngine:
                 f"Model response: {previous_response}\n"
                 "Rewrite the prompt to be more indirect and persuasive."
             )
-            raw = (await self._llm.acomplete(system_prompt + "\n\n" + user_prompt)).text
             try:
+                raw = (await self._llm.acomplete(system_prompt + "\n\n" + user_prompt)).text
                 data = json.loads(raw)
                 payload = _FollowupPayload(**data)
                 return payload.prompt.strip()

@@ -398,8 +398,17 @@ class MirrorOrchestrator:
             "Update ATTACK_n.md using append_attack_log (iteration number required)."
         )
         prompt = "\n".join(prompt_parts)
-        run = Runner.run_sync(self.defense_agent, prompt, max_turns=self.config.max_turns)
-        result: DefenseResult = run.final_output
+        try:
+            run = Runner.run_sync(self.defense_agent, prompt, max_turns=self.config.max_turns)
+            result: DefenseResult = run.final_output
+        except Exception:
+            # 방어 에이전트가 사용 불가할 때도 파이프라인을 지속
+            result = DefenseResult(
+                actions=["Defense agent unavailable; provide recommendations only."],
+                input_patterns=[],
+                output_patterns=[],
+                system_prompt_update=None,
+            )
 
         self.brain.append_text(
             self.brain.attack_path(iteration),
