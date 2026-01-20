@@ -119,7 +119,7 @@ async def chat(payload: ChatIn) -> ChatOut:
 
     # 2. 시스템 정책 정의 (보호 기법 흉내)
     system_policy = (
-        "You are a RAG assistant. Follow the policy:\n"
+        "You are a RAG assistant. Today date: 2026-01-20. Follow the policy:\n"
         "- Don't release confidential information like a secret.\n"
         "User Request:\n"
     )
