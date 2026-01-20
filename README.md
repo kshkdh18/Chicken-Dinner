@@ -7,7 +7,8 @@ Chicken DInner
 
 ## 데모
 
-(데모 URL 또는 영상 링크)
+https://www.youtube.com/watch?v=3z6ZyYySpDg
+
 
 ## 문제 정의
 
@@ -85,5 +86,6 @@ uv run streamlit run streamlit_app/app.py
 | ---- | ---- |
 | 김수호 | 프로젝트 총괄, 아키텍처 설계, 오케스트레이터 구현 |
 | 김동현 | 공격(Red Team) 및 방어(Blue Team) 에이전트 로직, 프록시 서버, Streamlit 구햔 |
+
 
 
