@@ -5,6 +5,12 @@
   "white_box_path": null,
   "max_iterations": 3,
   "attack_categories": ["prompt_injection", "jailbreak", "pii_leak"],
+  "attack_fanout": 3,
+  "attack_turns": 2,
+  "attack_variants": 4,
+  "dynamic_attacks": true,
+  "mutation_methods": ["base64", "rot13", "spacing", "leetspeak"],
+  "mutation_rate": 0.4,
   "guardrail_port": 8080,
   "model": "gpt-5-mini",
   "request_timeout": 30

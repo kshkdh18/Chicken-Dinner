@@ -18,7 +18,7 @@ class _PlanPayload(BaseModel):
 class MirrorPlannerWorkflow(Workflow):
     def __init__(self, model: str) -> None:
         super().__init__(timeout=60)
-        self._llm = OpenAI(model=model)
+        self._llm = OpenAI(model=model, reuse_client=False)
 
     @step
     async def plan(self, ev: StartEvent) -> StopEvent:
