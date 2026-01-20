@@ -1,0 +1,11 @@
+{
+  "mode": "guardrail-off",
+  "endpoint": "http://localhost:8000/chat",
+  "endpoint_format": "simple-rag",
+  "white_box_path": null,
+  "max_iterations": 3,
+  "attack_categories": ["prompt_injection", "jailbreak", "pii_leak"],
+  "guardrail_port": 8080,
+  "model": "gpt-5-mini",
+  "request_timeout": 30
+}
