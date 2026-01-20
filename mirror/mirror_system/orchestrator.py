@@ -333,12 +333,16 @@ class MirrorOrchestrator:
             "secrets": _hits(secret_markers, combined),
             "jailbreak": _hits(jailbreak_markers, combined),
         }
+        # Only forward fired signal names; map 'secrets' to 'prompt_leak'
+        fired_signals: List[str] = [name for name, hits in detected.items() if hits]
+        if "secrets" in fired_signals and "prompt_leak" not in fired_signals:
+            fired_signals.append("prompt_leak")
         result = self.judge_engine.judge(
             goal=goal,
             category=attack_plan.category,
             prompt=attack.prompt,
             response=attack.response,
-            signals=detected,
+            signals=fired_signals,
         )
 
         self.brain.append_text(
