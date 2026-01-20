@@ -9,11 +9,9 @@ import typer
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from .config import ApprovalMode, OrchestratorConfig
-from .mirror_orchestrator import MirrorOrchestrator, MirrorRunConfig
-from .mirror_settings import MirrorSettings
-from .orchestrator import Orchestrator
-from .progress import enable_print_progress
+from .core import ApprovalMode, OrchestratorConfig, Orchestrator
+from .core.progress import enable_print_progress
+from .mirror_system import MirrorOrchestrator, MirrorRunConfig, MirrorSettings
 
 
 app = typer.Typer(no_args_is_help=True)

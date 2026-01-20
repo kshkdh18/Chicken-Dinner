@@ -9,8 +9,8 @@ from typing import Any, Dict, List
 import httpx
 from agents import function_tool
 
-from .brain import BrainStore
-from .red_agent import STATIC_PROBES
+from ..storage import BrainStore
+from ..agents.red_agent import STATIC_PROBES
 
 
 # Inline implementations (moved from deleted attack_utils.py)

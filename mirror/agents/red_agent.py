@@ -14,7 +14,7 @@ from typing import Any
 import httpx
 from openai import AsyncOpenAI
 
-from .brain import BrainStore
+from ..storage import BrainStore
 
 
 # =============================================================================

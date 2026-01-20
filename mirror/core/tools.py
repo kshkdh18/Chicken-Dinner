@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Tuple
 from agents import function_tool
 
 from .config import ApprovalMode, OrchestratorConfig
-from .workspace import CommandPolicy, Workspace
+from ..storage.workspace import CommandPolicy, Workspace
 
 
 def _result(ok: bool, **payload: Any) -> Dict[str, Any]:

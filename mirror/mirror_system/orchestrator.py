@@ -7,11 +7,12 @@ from typing import List
 
 from agents import Agent, Runner
 
-from .red_agent import RedAgent, STATIC_PROBES
-from .brain import BrainStore
-from .guardrail_rules import GuardrailRules, load_rules, save_rules
-from .judge_engine import JudgeEngine
-from .mirror_models import (
+from ..agents import RedAgent, JudgeEngine
+from ..agents.red_agent import STATIC_PROBES
+from ..storage import BrainStore
+from ..defense import GuardrailRules, load_rules, save_rules
+from ..analysis import build_report, apply_system_prompt_update, scan_white_box, summarize_scan
+from .models import (
     AttackPlan,
     AttackResult,
     DefenseResult,
@@ -19,11 +20,9 @@ from .mirror_models import (
     MirrorPlan,
     ReportResult,
 )
-from .mirror_planner import MirrorPlannerWorkflow
-from .mirror_settings import MirrorSettings
-from .mirror_tools import build_defense_tools
-from .reporting import build_report
-from .white_box import apply_system_prompt_update, scan_white_box, summarize_scan
+from .planner import MirrorPlannerWorkflow
+from .settings import MirrorSettings
+from .tools import build_defense_tools
 
 
 @dataclass(frozen=True)

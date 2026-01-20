@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from typing import Dict, List, TYPE_CHECKING
 
-from .mirror_models import ReportResult
+from ..mirror_system.models import ReportResult
 
 if TYPE_CHECKING:
     from .mirror_models import AttackResult

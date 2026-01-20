@@ -6,9 +6,9 @@ from typing import List, Literal
 from llama_index.llms.openai import OpenAI
 from pydantic import BaseModel, Field
 
-from .detectors import detect_pii, detect_prompt_leak, detect_refusal, detect_toxicity
-from .mirror_models import JudgeResult
-from .mirror_settings import MirrorSettings
+from ..defense import detect_pii, detect_prompt_leak, detect_refusal, detect_toxicity
+from ..mirror_system.models import JudgeResult
+from ..mirror_system.settings import MirrorSettings
 
 
 class _JudgePayload(BaseModel):
