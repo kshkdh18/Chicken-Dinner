@@ -100,11 +100,39 @@ async def on_pick_mode(action: cl.Action):
 
         loop = asyncio.get_event_loop()
         await cl.Message(content=f"MIRROR 실행 중...\nendpoint={settings.endpoint}").send()
+
+        # Live tail of session brain while orchestrator runs
+        brain_dir = (Path.home() / ".mirror" / "brain" / (config.session_id or "chainlit")).resolve()
+
+        async def tail_brain(dir_path: Path):
+            seen: dict[str, int] = {}
+            while True:
+                files = []
+                if (dir_path / "PLANS.md").exists():
+                    files.append(dir_path / "PLANS.md")
+                files.extend(sorted(dir_path.glob("ATTACK_*.md")))
+                for f in files:
+                    try:
+                        text = f.read_text(encoding="utf-8")
+                        key = str(f)
+                        prev = seen.get(key, 0)
+                        if len(text) > prev:
+                            new = text[prev:]
+                            snippet = new[-2000:]
+                            await cl.Message(content=f"{f.name} 업데이트\n```\n{snippet}\n```", author="Log").send()
+                            seen[key] = len(text)
+                    except Exception:
+                        pass
+                await asyncio.sleep(1.0)
+
+        tail_task = asyncio.create_task(tail_brain(brain_dir))
         try:
             result = await loop.run_in_executor(None, lambda: orch.run(goal))
         except Exception as e:
             await cl.Message(content=f"오류 발생: {e}").send()
             return
+        finally:
+            tail_task.cancel()
 
         brain_dir = result.brain_dir
         await cl.Message(content=f"세션 완료: {brain_dir}\nPLANS: {brain_dir / 'PLANS.md'}").send()

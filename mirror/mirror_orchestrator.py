@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List
 
-from agents import Agent, Runner
+from agents import Agent, Runner, AgentOutputSchema
 
 from .brain import BrainStore
 from .guardrail_rules import GuardrailRules, load_rules, save_rules
@@ -71,28 +71,28 @@ class MirrorOrchestrator:
             name="Red Team",
             instructions=self._attack_instructions(),
             tools=build_attack_tools(settings, self.brain),
-            output_type=AttackResult,
+            output_type=AgentOutputSchema(AttackResult, strict_json_schema=False),
             model=settings.attacker_model or settings.model or config.model,
         )
         self.judge_agent = Agent(
             name="Judge",
             instructions=self._judge_instructions(),
             tools=build_judge_tools(self.brain),
-            output_type=JudgeResult,
+            output_type=AgentOutputSchema(JudgeResult, strict_json_schema=False),
             model=settings.judge_model or settings.model or config.model,
         )
         self.defense_agent = Agent(
             name="Blue Team",
             instructions=self._defense_instructions(),
             tools=build_defense_tools(self.brain),
-            output_type=DefenseResult,
+            output_type=AgentOutputSchema(DefenseResult, strict_json_schema=False),
             model=settings.defense_model or settings.model or config.model,
         )
         self.reporter_agent = Agent(
             name="Reporter",
             instructions=self._reporter_instructions(),
             tools=build_reporter_tools(self.brain),
-            output_type=ReportResult,
+            output_type=AgentOutputSchema(ReportResult, strict_json_schema=False),
             model=settings.reporter_model or settings.model or config.model,
         )
 
