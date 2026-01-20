@@ -93,7 +93,7 @@ def _try_guardrail_endpoint(timeout: float = 2.0) -> tuple[str | None, str | Non
     return None, None
 
 
-def _run_auto_pair(goal: str, iterations: int, include_toxic: bool, off_id: str, on_id: str) -> dict:
+def _run_auto_pair(goal: str, iterations: int, include_toxic: bool, off_id: str, on_id: str, force_proxy_on: bool = False) -> dict:
     endpoint, fmt = discover_endpoint()
     # OFF
     settings_off = MirrorSettings(
@@ -104,8 +104,11 @@ def _run_auto_pair(goal: str, iterations: int, include_toxic: bool, off_id: str,
     config_off = MirrorRunConfig(workspace_root=Path(".").resolve(), session_id=off_id)
     orch_off = MirrorOrchestrator(config_off, settings_off)
     res_off = orch_off.run(goal)
-    # ON (prefer guardrail proxy if available)
-    on_ep, on_fmt = _try_guardrail_endpoint()
+    # ON (prefer guardrail proxy). If force flag is on, skip probe.
+    if force_proxy_on:
+        on_ep, on_fmt = "http://127.0.0.1:8080/v1/chat/completions", "openai-chat"
+    else:
+        on_ep, on_fmt = _try_guardrail_endpoint()
     settings_on = MirrorSettings(
         mode="guardrail-on", endpoint=(on_ep or endpoint), endpoint_format=(on_fmt or fmt),
         max_iterations=iterations, use_toxic_small_llm=include_toxic,
@@ -138,6 +141,7 @@ with st.sidebar:
     iterations = st.slider("Iterations", 1, 10, 3)
     with st.expander("Advanced", expanded=False):
         include_toxic = st.checkbox("Include Toxic Adaptive Attacks", value=False)
+        force_proxy_on = st.checkbox("Force ON via guardrail proxy (127.0.0.1:8080)", value=True)
     run_btn = st.button("Run", type="primary")
 
 # Start run
@@ -146,7 +150,7 @@ if run_btn:
     on_id = f"live_on_{int(time.time())}"
     st.session_state["auto_live_off_id"] = off_id
     st.session_state["auto_live_on_id"] = on_id
-    fut = st.session_state.executor.submit(_run_auto_pair, goal, iterations, include_toxic, off_id, on_id)
+    fut = st.session_state.executor.submit(_run_auto_pair, goal, iterations, include_toxic, off_id, on_id, force_proxy_on)
     st.session_state["auto_live_future"] = fut
 
 off_id = st.session_state.get("auto_live_off_id")

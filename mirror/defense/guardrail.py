@@ -5,6 +5,8 @@ import time
 from typing import List, Optional
 
 from fastapi import FastAPI
+import re as _re
+import base64 as _b64
 from openai import OpenAI
 from pydantic import BaseModel, Field
 
@@ -69,6 +71,20 @@ def create_app(rules_path, model: str) -> FastAPI:
             msg.content for msg in payload.messages if msg.role == "user"
         )
         blocked_pattern = _matches_any(user_text, rules.input_denylists)
+        # Heuristic: detect base64-obfuscated prompts and re-check after decode
+        if not blocked_pattern:
+            try:
+                looks_b64 = bool(_re.fullmatch(r"[A-Za-z0-9+/=\s]{24,}", user_text))
+                if looks_b64:
+                    decoded = _b64.b64decode(user_text.encode(), validate=True).decode(
+                        "utf-8", errors="ignore"
+                    )
+                    if decoded:
+                        hit = _matches_any(decoded, rules.input_denylists)
+                        if hit:
+                            blocked_pattern = "base64_obfuscated"
+            except Exception:
+                pass
         if blocked_pattern:
             blocked_message = (
                 "Request blocked by guardrail. Pattern: " + blocked_pattern
@@ -85,25 +101,43 @@ def create_app(rules_path, model: str) -> FastAPI:
                 ],
             )
 
-        response = client.chat.completions.create(
-            model=payload.model or model,
-            messages=[msg.model_dump() for msg in payload.messages],
-            temperature=payload.temperature,
-        )
-        content = response.choices[0].message.content or ""
-        content = _redact(content, rules.output_redact_patterns)
+        # Forward upstream with fail-safe: on error, refuse safely instead of 500
+        try:
+            response = client.chat.completions.create(
+                model=payload.model or model,
+                messages=[msg.model_dump() for msg in payload.messages],
+                temperature=payload.temperature,
+            )
+            content = response.choices[0].message.content or ""
+            content = _redact(content, rules.output_redact_patterns)
 
-        return ChatCompletionResponse(
-            id=response.id,
-            created=int(time.time()),
-            model=response.model or model,
-            choices=[
-                ChatCompletionChoice(
-                    index=0,
-                    message=ChatMessage(role="assistant", content=content),
-                    finish_reason=response.choices[0].finish_reason or "stop",
-                )
-            ],
-        )
+            return ChatCompletionResponse(
+                id=response.id,
+                created=int(time.time()),
+                model=response.model or model,
+                choices=[
+                    ChatCompletionChoice(
+                        index=0,
+                        message=ChatMessage(role="assistant", content=content),
+                        finish_reason=response.choices[0].finish_reason or "stop",
+                    )
+                ],
+            )
+        except Exception:
+            fallback = (
+                "Guardrail upstream unavailable or error; refusing by default. "
+                "No confidential information will be disclosed."
+            )
+            return ChatCompletionResponse(
+                id=f"guardrail-error-{int(time.time())}",
+                created=int(time.time()),
+                model=payload.model or model,
+                choices=[
+                    ChatCompletionChoice(
+                        index=0,
+                        message=ChatMessage(role="assistant", content=fallback),
+                    )
+                ],
+            )
 
     return app
