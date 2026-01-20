@@ -14,6 +14,7 @@ from .mirror_orchestrator import MirrorOrchestrator, MirrorRunConfig
 from .mirror_settings import MirrorSettings
 from .orchestrator import Orchestrator
 from .progress import enable_print_progress
+from .autopilot import run_autopilot
 from .brain import BrainStore
 from .mirror_tools import build_reporter_tools
 from agents import Agent, Runner
@@ -158,6 +159,24 @@ def guardrail(
 
     app_instance = create_app(rules_path=rules_path, model=model)
     uvicorn.run(app_instance, host=host, port=port)
+
+
+@app.command()
+def autopilot(
+    goal: str = typer.Argument(..., help="Goal for automatic MIRROR runs."),
+    endpoint: str = typer.Option(None, help="Target endpoint (optional, auto-detect if omitted)."),
+    iterations: int = typer.Option(3, help="Max iterations per run."),
+    include_toxic: bool = typer.Option(True, help="Include toxicity adaptive attacks."),
+    print_progress: bool = typer.Option(False, "--print-progress", help="Print tracing."),
+) -> None:
+    load_dotenv()
+    _require_api_key()
+    if print_progress:
+        enable_print_progress()
+    result = run_autopilot(goal, endpoint=endpoint, iterations=iterations, include_toxic=include_toxic)
+    typer.echo("Autopilot completed.")
+    for k, v in result.items():
+        typer.echo(f"{k}: {v}")
 
 
 @app.command()
