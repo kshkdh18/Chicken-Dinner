@@ -5,6 +5,7 @@ Refer to the document/MIRROR_PLAN.md for the proposal.
 
 MIRROR 시스템(자율 Red-teaming/Safety Testing) 개발 가이드문서. 
 OpenAI Agents SDK 기반의 **Plan/Worker 오케스트레이터**, LlamaIndex Workflow 기반의 **MIRROR 플래너/공격·심판 엔진**을 함께 활용.
+현재는 PoC 단계이다. 
 
 ---
 
@@ -51,12 +52,12 @@ OpenAI Agents SDK 기반의 **Plan/Worker 오케스트레이터**, LlamaIndex Wo
 *   `mirror/mirror_planner.py`: LlamaIndex Workflow 기반의 특화된 플래너.
 *   `mirror/mirror_settings.py`: MIRROR 전용 설정 로직.
 *   `mirror/mirror_models.py`: 데이터 모델 정의.
-*   `mirror/attack_engine.py`: 동적 공격 생성 + Fan-Out + 다중 턴 공격 실행 엔진.
+*   `mirror/red_agent.py`: **[PoC] LLM 기반 공격 에이전트.** Dict 기반 설정, LLM SYSTEM_PROMPT로 공격 생성 및 판단.
 *   `mirror/judge_engine.py`: Tier 1→2→3 계층 심판 파이프라인.
 *   `mirror/reporting.py`: 지표 계산 및 OWASP/NIST 매핑 리포트 생성.
 *   `mirror/detectors.py`: 규칙 기반 탐지기 모음 (refusal/PII/prompt leak 등).
 *   `mirror/white_box.py`: White-Box 스캔 및 시스템 프롬프트 업데이트 지원.
-*   `mirror/mirror_tools.py`: 공격 및 로그 분석을 위한 전용 도구 (`mutate_prompt`, `call_target` 등).
+*   `mirror/mirror_tools.py`: 공격 및 로그 분석을 위한 전용 도구 (`mutate_attack_prompt`, `call_target` 등).
 *   `mirror/guardrail.py`: FastAPI 기반 가드레일 프록시 서버.
 *   `mirror/brain.py`: 저장소 유틸리티.
 
@@ -65,7 +66,7 @@ OpenAI Agents SDK 기반의 **Plan/Worker 오케스트레이터**, LlamaIndex Wo
 ## 4. 주요 도구 (Tools)
 
 - **기본:** `list_dir`, `read_file`, `write_file`, `edit_file`, `run_shell`
-- **MIRROR:** `get_probe_prompts`, `mutate_prompt`, `call_target`, `append_attack_log`
+- **MIRROR:** `get_probe_prompts`, `mutate_attack_prompt`, `call_target`, `append_attack_log`
 
 ---
 

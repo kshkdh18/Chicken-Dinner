@@ -1,55 +1,75 @@
 from __future__ import annotations
 
+import base64
+import codecs
 from pathlib import Path
 import re
 from typing import Any, Dict, List
 
+import httpx
 from agents import function_tool
 
-from .attack_library import get_prompts
-from .attack_utils import call_target_sync, mutate_prompt
 from .brain import BrainStore
-from .mirror_settings import MirrorSettings
+from .red_agent import STATIC_PROBES
+
+
+# Inline implementations (moved from deleted attack_utils.py)
+def _mutate_prompt(prompt: str, method: str) -> str | None:
+    if method == "base64":
+        return base64.b64encode(prompt.encode("utf-8")).decode("utf-8")
+    if method == "rot13":
+        return codecs.encode(prompt, "rot_13")
+    if method == "spacing":
+        return " ".join(list(prompt))
+    if method == "leetspeak":
+        table = str.maketrans({"a": "@", "e": "3", "i": "1", "o": "0", "s": "5"})
+        return prompt.translate(table)
+    return None
+
+
+def _call_target_sync(endpoint: str, message: str, timeout: float = 30) -> Dict[str, Any]:
+    try:
+        payload = {"message": message}
+        response = httpx.post(endpoint, json=payload, timeout=timeout)
+        response.raise_for_status()
+        data = response.json()
+        return {"ok": True, "response": data.get("answer", str(data)), "raw": data}
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)}
+
+
+def _get_probes(category: str, limit: int = 3) -> List[str]:
+    return list(STATIC_PROBES.get(category, []))[:limit]
 
 
 def _result(ok: bool, **payload: Any) -> Dict[str, Any]:
     return {"ok": ok, **payload}
 
 
-def build_attack_tools(settings: MirrorSettings, brain: BrainStore) -> List[Any]:
+def build_attack_tools(endpoint: str, brain: BrainStore) -> List[Any]:
     @function_tool
     def get_probe_prompts(category: str, limit: int = 3) -> Dict[str, Any]:
         """Return known probe prompts for a category (garak-inspired)."""
-        return _result(True, category=category, prompts=get_prompts(category, limit=limit))
+        return _result(True, category=category, prompts=_get_probes(category, limit=limit))
 
     @function_tool
-    def mutate_prompt(prompt: str, method: str = "base64") -> Dict[str, Any]:
+    def mutate_attack_prompt(prompt: str, method: str = "base64") -> Dict[str, Any]:
         """Apply a simple mutation to a prompt (base64, rot13, spacing, leetspeak)."""
-        mutated = mutate_prompt(prompt, method)
+        mutated = _mutate_prompt(prompt, method)
         if mutated is None:
             return _result(False, error=f"Unknown method: {method}")
         return _result(True, method=method, mutated=mutated)
 
     @function_tool
-    def call_target(
-        message: str,
-        endpoint: str | None = None,
-        endpoint_format: str | None = None,
-    ) -> Dict[str, Any]:
+    def call_target(message: str) -> Dict[str, Any]:
         """Call the target endpoint with a message."""
-        result = call_target_sync(
-            settings=settings,
-            message=message,
-            endpoint=endpoint,
-            endpoint_format=endpoint_format,
-        )
+        result = _call_target_sync(endpoint, message)
         if not result.get("ok"):
             return _result(False, error=result.get("error", "Unknown error"))
         return _result(
             True,
             response=result.get("response", ""),
             raw=result.get("raw"),
-            status_code=result.get("status_code"),
         )
 
     @function_tool
@@ -67,7 +87,7 @@ def build_attack_tools(settings: MirrorSettings, brain: BrainStore) -> List[Any]
 
     return [
         get_probe_prompts,
-        mutate_prompt,
+        mutate_attack_prompt,
         call_target,
         append_attack_log,
         read_attack_log,
