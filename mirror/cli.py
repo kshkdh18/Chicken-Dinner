@@ -9,15 +9,16 @@ import typer
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from .config import ApprovalMode, OrchestratorConfig
-from .mirror_orchestrator import MirrorOrchestrator, MirrorRunConfig
-from .mirror_settings import MirrorSettings
-from .orchestrator import Orchestrator
-from .progress import enable_print_progress
-from .brain import BrainStore
-from .mirror_tools import build_reporter_tools
+from mirror.core.config import ApprovalMode, OrchestratorConfig
+from mirror.mirror_system.orchestrator import MirrorOrchestrator, MirrorRunConfig
+from mirror.mirror_system.settings import MirrorSettings
+from mirror.core.orchestrator import Orchestrator
+from mirror.core.progress import enable_print_progress
+from mirror.autopilot import run_autopilot
+from mirror.storage.brain import BrainStore
+from mirror.mirror_system.tools import build_reporter_tools
 from agents import Agent, Runner
-from .prompts import session_reporter_instructions
+from mirror.core.prompts import session_reporter_instructions
 
 
 app = typer.Typer(no_args_is_help=True)
@@ -152,12 +153,30 @@ def guardrail(
     _require_api_key()
     if rules_path is None:
         rules_path = Path.home() / ".mirror" / "brain" / "default" / "guardrail_rules.json"
-    from .guardrail import create_app
+    from mirror.defense.guardrail import create_app
 
     import uvicorn
 
     app_instance = create_app(rules_path=rules_path, model=model)
     uvicorn.run(app_instance, host=host, port=port)
+
+
+@app.command()
+def autopilot(
+    goal: str = typer.Argument(..., help="Goal for automatic MIRROR runs."),
+    endpoint: str = typer.Option(None, help="Target endpoint (optional, auto-detect if omitted)."),
+    iterations: int = typer.Option(3, help="Max iterations per run."),
+    include_toxic: bool = typer.Option(True, help="Include toxicity adaptive attacks."),
+    print_progress: bool = typer.Option(False, "--print-progress", help="Print tracing."),
+) -> None:
+    load_dotenv()
+    _require_api_key()
+    if print_progress:
+        enable_print_progress()
+    result = run_autopilot(goal, endpoint=endpoint, iterations=iterations, include_toxic=include_toxic)
+    typer.echo("Autopilot completed.")
+    for k, v in result.items():
+        typer.echo(f"{k}: {v}")
 
 
 @app.command()
