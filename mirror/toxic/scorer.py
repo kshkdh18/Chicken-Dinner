@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List
 
-from ..detectors import detect_toxicity
+from ..defense.detectors import detect_toxicity
 
 
 class ToxicityScorer:
@@ -54,4 +54,3 @@ class ToxicityScorer:
         except Exception:
             hits = detect_toxicity(text)
             return (1.0 if hits else 0.0), (["toxicity"] if hits else [])
-

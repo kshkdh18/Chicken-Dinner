@@ -1,15 +1,23 @@
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+# Ensure repository root is importable so `mirror` package resolves
+_ROOT = Path(__file__).resolve().parents[1]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
 import time
 from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
 from typing import List, Tuple
 
 import streamlit as st
+from dotenv import load_dotenv
 
 from mirror.autopilot import run_autopilot, discover_endpoint
-from mirror.mirror_orchestrator import MirrorOrchestrator, MirrorRunConfig
-from mirror.mirror_settings import MirrorSettings
+from mirror.mirror_system.orchestrator import MirrorOrchestrator, MirrorRunConfig
+from mirror.mirror_system.settings import MirrorSettings
 
 
 def _brain_files(session_dir: Path) -> tuple[Path, List[Path]]:
@@ -69,6 +77,7 @@ def _tail_events(brain_dir: Path, max_lines: int = 300) -> List[dict]:
 
 
 st.set_page_config(page_title="MIRROR Autopilot", layout="wide")
+load_dotenv()
 st.title("MIRROR Autopilot Demo")
 st.write("입력 없이 OFF→ON 두 세션을 자동 실행하고, 진행 상황과 지표를 보여줍니다.")
 

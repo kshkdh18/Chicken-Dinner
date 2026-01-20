@@ -4,9 +4,9 @@ import asyncio
 from dataclasses import dataclass
 from typing import List
 
-from ..attack_library import get_prompts
-from ..attack_utils import call_target_async, mutate_prompt
-from ..mirror_settings import MirrorSettings
+from ..agents.attack_library import get_prompts
+from ..agents.attack_utils import call_target_async, mutate_prompt
+from ..mirror_system.settings import MirrorSettings
 from .generator import ToxicPromptGenerator
 from .scorer import ToxicityScorer
 from ..garak_cli import generate_prompts as garak_generate
