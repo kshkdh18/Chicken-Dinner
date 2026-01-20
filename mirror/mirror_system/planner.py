@@ -7,7 +7,7 @@ from llama_index.core.workflow import StartEvent, StopEvent, Workflow, step
 from llama_index.llms.openai import OpenAI
 from pydantic import BaseModel, Field
 
-from .mirror_models import AttackPlan, MirrorPlan
+from mirror.mirror_system.models import AttackPlan, MirrorPlan
 
 
 class _PlanPayload(BaseModel):
@@ -18,7 +18,7 @@ class _PlanPayload(BaseModel):
 class MirrorPlannerWorkflow(Workflow):
     def __init__(self, model: str) -> None:
         super().__init__(timeout=60)
-        self._llm = OpenAI(model=model)
+        self._llm = OpenAI(model=model, reuse_client=False)
 
     @step
     async def plan(self, ev: StartEvent) -> StopEvent:

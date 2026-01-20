@@ -145,3 +145,12 @@ fabric.properties
 
 .env
 LLAMA-INDEX-GUIDE.md
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/

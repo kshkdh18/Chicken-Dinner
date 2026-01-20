@@ -5,10 +5,10 @@ from typing import List
 
 from agents import Agent, Runner
 
-from .config import OrchestratorConfig
-from .models import Plan, PlanStep, WorkerResult
-from .prompts import planner_instructions, worker_instructions
-from .tools import build_tools
+from mirror.core.config import OrchestratorConfig
+from mirror.core.models import Plan, PlanStep, WorkerResult
+from mirror.core.prompts import planner_instructions, worker_instructions
+from mirror.core.tools import build_tools
 
 
 @dataclass

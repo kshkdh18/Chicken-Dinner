@@ -9,11 +9,16 @@ import typer
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from .config import ApprovalMode, OrchestratorConfig
-from .mirror_orchestrator import MirrorOrchestrator, MirrorRunConfig
-from .mirror_settings import MirrorSettings
-from .orchestrator import Orchestrator
-from .progress import enable_print_progress
+from mirror.core.config import ApprovalMode, OrchestratorConfig
+from mirror.mirror_system.orchestrator import MirrorOrchestrator, MirrorRunConfig
+from mirror.mirror_system.settings import MirrorSettings
+from mirror.core.orchestrator import Orchestrator
+from mirror.core.progress import enable_print_progress
+from mirror.autopilot import run_autopilot
+from mirror.storage.brain import BrainStore
+from mirror.mirror_system.tools import build_reporter_tools
+from agents import Agent, Runner
+from mirror.core.prompts import session_reporter_instructions
 
 
 app = typer.Typer(no_args_is_help=True)
@@ -148,12 +153,66 @@ def guardrail(
     _require_api_key()
     if rules_path is None:
         rules_path = Path.home() / ".mirror" / "brain" / "default" / "guardrail_rules.json"
-    from .guardrail import create_app
+    from mirror.defense.guardrail import create_app
 
     import uvicorn
 
     app_instance = create_app(rules_path=rules_path, model=model)
     uvicorn.run(app_instance, host=host, port=port)
+
+
+@app.command()
+def autopilot(
+    goal: str = typer.Argument(..., help="Goal for automatic MIRROR runs."),
+    endpoint: str = typer.Option(None, help="Target endpoint (optional, auto-detect if omitted)."),
+    iterations: int = typer.Option(3, help="Max iterations per run."),
+    include_toxic: bool = typer.Option(True, help="Include toxicity adaptive attacks."),
+    print_progress: bool = typer.Option(False, "--print-progress", help="Print tracing."),
+) -> None:
+    load_dotenv()
+    _require_api_key()
+    if print_progress:
+        enable_print_progress()
+    result = run_autopilot(goal, endpoint=endpoint, iterations=iterations, include_toxic=include_toxic)
+    typer.echo("Autopilot completed.")
+    for k, v in result.items():
+        typer.echo(f"{k}: {v}")
+
+
+@app.command()
+def report(
+    session_id: str = typer.Argument(..., help="Session id under ~/.mirror/brain/{session_id}"),
+    model: str = typer.Option("gpt-4o-mini", help="Model for the reporter agent."),
+    print_progress: bool = typer.Option(False, "--print-progress", help="Print tracing."),
+) -> None:
+    load_dotenv()
+    _require_api_key()
+    _client = OpenAI()
+
+    if print_progress:
+        enable_print_progress()
+
+    brain_dir = (Path.home() / ".mirror" / "brain" / session_id).resolve()
+    if not brain_dir.exists():
+        raise typer.BadParameter(f"Brain dir not found: {brain_dir}")
+
+    brain = BrainStore(brain_dir)
+    agent = Agent(
+        name="Session Reporter",
+        instructions=session_reporter_instructions(str(brain_dir)),
+        tools=build_reporter_tools(brain),
+        model=model,
+    )
+
+    prompt = (
+        "Generate a polished Markdown report for this session. "
+        "Use tools to read PLANS.md and all ATTACK_n.md files and compute metrics."
+    )
+    run = Runner.run_sync(agent, input=prompt, max_turns=8)
+    output_md = run.final_output
+    target = brain_dir / "REPORT.md"
+    target.write_text(str(output_md), encoding="utf-8")
+    typer.echo(f"Report written: {target}")
 
 
 if __name__ == "__main__":
