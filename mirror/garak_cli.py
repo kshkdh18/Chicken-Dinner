@@ -3,14 +3,13 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
-from typing import List
 
 
 def garak_available() -> bool:
     return shutil.which("garak") is not None
 
 
-def generate_prompts(probe: str, count: int = 3, model: str | None = None) -> List[str]:
+def generate_prompts(probe: str, count: int = 3, model: str | None = None) -> list[str]:
     """Run garak CLI to generate prompts via atkgen or probe.
 
     Returns a best-effort list of prompts; if garak is not available or fails, returns [].
@@ -32,7 +31,7 @@ def generate_prompts(probe: str, count: int = 3, model: str | None = None) -> Li
         if completed.returncode != 0:
             return []
         data = json.loads(completed.stdout or "{}")
-        prompts: List[str] = []
+        prompts: list[str] = []
         # Best-effort: walk JSON to find candidate prompts
         for item in data.get("runs", []):
             for p in item.get("prompts", []):

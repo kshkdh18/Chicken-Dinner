@@ -2,19 +2,18 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List
 
 
 @dataclass
 class WhiteBoxScan:
     root: Path
-    prompt_files: List[Path]
-    notes: List[str]
+    prompt_files: list[Path]
+    notes: list[str]
 
 
 def scan_white_box(root: Path, max_files: int = 80, max_bytes: int = 200_000) -> WhiteBoxScan:
-    candidates: List[Path] = []
-    notes: List[str] = []
+    candidates: list[Path] = []
+    notes: list[str] = []
     if not root.exists():
         return WhiteBoxScan(root=root, prompt_files=[], notes=["white-box path not found"])
 

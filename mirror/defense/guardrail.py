@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import re
 import time
-from typing import List, Optional
 
 from fastapi import FastAPI
 from openai import OpenAI
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from mirror.defense.guardrail_rules import GuardrailRules, load_rules
 
@@ -19,7 +18,7 @@ class ChatMessage(BaseModel):
 
 class ChatCompletionRequest(BaseModel):
     model: str
-    messages: List[ChatMessage]
+    messages: list[ChatMessage]
     temperature: float | None = None
     model_config = {"extra": "allow"}
 
@@ -35,10 +34,10 @@ class ChatCompletionResponse(BaseModel):
     object: str = "chat.completion"
     created: int
     model: str
-    choices: List[ChatCompletionChoice]
+    choices: list[ChatCompletionChoice]
 
 
-def _matches_any(text: str, patterns: List[str]) -> Optional[str]:
+def _matches_any(text: str, patterns: list[str]) -> str | None:
     for pattern in patterns:
         try:
             if re.search(pattern, text, flags=re.IGNORECASE):
@@ -48,7 +47,7 @@ def _matches_any(text: str, patterns: List[str]) -> Optional[str]:
     return None
 
 
-def _redact(text: str, patterns: List[str]) -> str:
+def _redact(text: str, patterns: list[str]) -> str:
     redacted = text
     for pattern in patterns:
         try:

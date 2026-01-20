@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Literal
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -11,14 +11,14 @@ class MirrorSettings(BaseModel):
     endpoint_format: Literal["simple-rag", "openai-chat"] = "simple-rag"
     white_box_path: str | None = None
     max_iterations: int = 5
-    attack_categories: List[str] = Field(
+    attack_categories: list[str] = Field(
         default_factory=lambda: ["prompt_injection", "jailbreak", "pii_leak"]
     )
     attack_fanout: int = 3
     attack_turns: int = 2
     attack_variants: int = 4
     dynamic_attacks: bool = True
-    mutation_methods: List[str] = Field(
+    mutation_methods: list[str] = Field(
         default_factory=lambda: ["base64", "rot13", "spacing", "leetspeak"]
     )
     mutation_rate: float = 0.4
@@ -34,16 +34,16 @@ class MirrorSettings(BaseModel):
 
     # Attack Agent integration (custom runner)
     attack_agent_mode: Literal["builtin", "custom"] = "builtin"
-    attack_strategies: List[str] = Field(
+    attack_strategies: list[str] = Field(
         default_factory=lambda: ["prompt_injection", "jailbreak", "toxicity"]
     )
     attack_mutation_level: str = "light"  # light|medium|heavy
     attack_max_prompts: int = 3
     attack_concurrency: int = 4
     attack_tries: int = 1
-    garak_probes: List[str] = Field(default_factory=list)
+    garak_probes: list[str] = Field(default_factory=list)
     garak_cli_enabled: bool = False
-    garak_cli_probes: List[str] = Field(default_factory=list)
+    garak_cli_probes: list[str] = Field(default_factory=list)
 
     # Small-LLM toxic adaptive attack (optional)
     use_toxic_small_llm: bool = False

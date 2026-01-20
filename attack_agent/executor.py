@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Tuple
+from typing import Any
+
 import httpx
 
 
-def _parse_response_json(data: Dict[str, Any]) -> str:
+def _parse_response_json(data: dict[str, Any]) -> str:
     # OpenAI Chat Completions compatible
     try:
         return (
@@ -26,12 +27,12 @@ async def call_target(
     model: str,
     prompt: str,
     timeout_s: float = 30.0,
-) -> Tuple[str, Dict[str, Any]]:
+) -> tuple[str, dict[str, Any]]:
     """POST a chat-style payload to an OpenAI-compatible endpoint.
 
     Returns: (response_text, raw_json)
     """
-    payload: Dict[str, Any] = {
+    payload: dict[str, Any] = {
         "model": model,
         "messages": [
             {"role": "user", "content": prompt},

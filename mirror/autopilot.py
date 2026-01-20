@@ -5,7 +5,7 @@ import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, Tuple
+from typing import Literal
 
 import httpx
 
@@ -45,7 +45,7 @@ def detect_endpoint_format(endpoint: str, timeout: float = 3.0) -> Literal["open
     return "simple-rag"
 
 
-def discover_endpoint(timeout: float = 3.0) -> Tuple[str, Literal["openai-chat", "simple-rag"]]:
+def discover_endpoint(timeout: float = 3.0) -> tuple[str, Literal["openai-chat", "simple-rag"]]:
     """Find a reasonable default endpoint without user input.
 
     Priority:
