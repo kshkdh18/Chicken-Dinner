@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 import streamlit as st
 
-from mirror.autopilot import run_autopilot
+from mirror.autopilot import run_autopilot, discover_endpoint
+from mirror.mirror_orchestrator import MirrorOrchestrator, MirrorRunConfig
+from mirror.mirror_settings import MirrorSettings
 
 
 def _brain_files(session_dir: Path) -> tuple[Path, List[Path]]:
@@ -31,68 +34,99 @@ def _read_json(p: Path) -> dict:
         return {}
 
 
+def _run_mirror(goal: str, session_id: str, mode: str, iterations: int, include_toxic: bool) -> Tuple[str, str]:
+    endpoint, fmt = discover_endpoint()
+    settings = MirrorSettings(
+        mode=mode,
+        endpoint=endpoint,
+        endpoint_format=fmt,
+        max_iterations=iterations,
+        use_toxic_small_llm=include_toxic,
+    )
+    config = MirrorRunConfig(workspace_root=Path(".").resolve(), session_id=session_id)
+    orch = MirrorOrchestrator(config, settings)
+    result = orch.run(goal)
+    return str(result.brain_dir), session_id
+
+
 st.set_page_config(page_title="MIRROR Autopilot", layout="wide")
 st.title("MIRROR Autopilot Demo")
-st.write("입력 없이 OFF→ON 두 세션을 자동 실행하고, 진행 상황과 지표를 실시간으로 보여줍니다.")
+st.write("입력 없이 OFF→ON 두 세션을 자동 실행하고, 진행 상황과 지표를 보여줍니다.")
+
+if "executor" not in st.session_state:
+    st.session_state.executor = ThreadPoolExecutor(max_workers=2)
 
 with st.sidebar:
     st.header("Controls")
     goal = st.text_input("Goal", value="Autopilot security assessment")
     iterations = st.slider("Iterations", 1, 10, 3)
     include_toxic = st.checkbox("Include Toxic Adaptive Attacks", value=True)
-    run = st.button("Run Autopilot", type="primary")
+    run_auto = st.button("Run Autopilot", type="primary")
+    run_live = st.button("Run LIVE (OFF)")
 
-if run:
+# Autopilot (완료 후 스냅샷)
+if run_auto:
     st.session_state["auto_result"] = run_autopilot(
         goal=goal, endpoint=None, iterations=iterations, include_toxic=include_toxic
     )
 
+def _render_session(title: str, session_dir: Path):
+    st.subheader(title)
+    plans, attacks = _brain_files(session_dir)
+    st.caption(str(plans))
+    st.code(_read_text(plans), language="markdown")
+    if attacks:
+        last = attacks[-1]
+        st.caption(str(last))
+        st.code(_read_text(last), language="markdown")
+
+
 auto = st.session_state.get("auto_result")
-if not auto:
-    st.info("좌측 Run Autopilot을 눌러 실행하세요.")
-    st.stop()
+if auto:
+    col1, col2 = st.columns(2)
+    with col1:
+        _render_session(f"OFF Session — {auto['off_session']}", Path(auto["off_dir"]))
+    with col2:
+        _render_session(f"ON Session — {auto['on_session']}", Path(auto["on_dir"]))
 
-col1, col2 = st.columns(2)
+    st.divider()
+    col3, col4 = st.columns(2)
+    with col3:
+        st.subheader("OFF Metrics")
+        off_report = _read_json(Path(auto["off_dir"]) / "REPORT.json")
+        st.json(off_report.get("metrics", {}))
+    with col4:
+        st.subheader("ON Metrics")
+        on_report = _read_json(Path(auto["on_dir"]) / "REPORT.json")
+        st.json(on_report.get("metrics", {}))
 
-off_dir = Path(auto["off_dir"]).resolve()
-on_dir = Path(auto["on_dir"]).resolve()
+    st.divider()
+    st.subheader("Comparison")
+    st.code(_read_text(Path(auto["comparison"])), language="markdown")
 
-with col1:
-    st.subheader(f"OFF Session — {auto['off_session']}")
-    plans_off, attacks_off = _brain_files(off_dir)
-    st.caption(str(plans_off))
-    st.code(_read_text(plans_off), language="markdown")
-    if attacks_off:
-        last_off = attacks_off[-1]
-        st.caption(str(last_off))
-        st.code(_read_text(last_off), language="markdown")
+# LIVE 실행(폴링 기반)
+if run_live:
+    st.session_state["live_session_id"] = f"live_off_{int(time.time())}"
+    fut = st.session_state.executor.submit(
+        _run_mirror, goal, st.session_state["live_session_id"], "guardrail-off", iterations, include_toxic
+    )
+    st.session_state["live_future"] = fut
 
-with col2:
-    st.subheader(f"ON Session — {auto['on_session']}")
-    plans_on, attacks_on = _brain_files(on_dir)
-    st.caption(str(plans_on))
-    st.code(_read_text(plans_on), language="markdown")
-    if attacks_on:
-        last_on = attacks_on[-1]
-        st.caption(str(last_on))
-        st.code(_read_text(last_on), language="markdown")
-
-st.divider()
-
-col3, col4 = st.columns(2)
-with col3:
-    st.subheader("OFF Metrics")
-    off_report = _read_json(off_dir / "REPORT.json")
-    st.json(off_report.get("metrics", {}))
-with col4:
-    st.subheader("ON Metrics")
-    on_report = _read_json(on_dir / "REPORT.json")
-    st.json(on_report.get("metrics", {}))
-
-st.divider()
-st.subheader("Comparison")
-st.code(_read_text(Path(auto["comparison"])), language="markdown")
-
-# Auto refresh every 2 seconds
-st.experimental_singleton.clear()
-st.experimental_rerun
+live_id = st.session_state.get("live_session_id")
+live_fut = st.session_state.get("live_future")
+if live_id and live_fut:
+    st.info(f"LIVE 실행 중… 세션: {live_id}")
+    brain_dir = Path.home() / ".mirror" / "brain" / live_id
+    colL, = st.columns(1)
+    with colL:
+        placeholder = st.empty()
+        # 한 번 렌더하고 자동 새로고침
+        plans, attacks = _brain_files(brain_dir)
+        md = _read_text(plans)
+        if attacks:
+            md += "\n\n" + _read_text(attacks[-1])
+        placeholder.code(md or "(waiting for logs…)\n", language="markdown")
+        # 자동 리프레시
+        if not live_fut.done():
+            time.sleep(1.0)
+            st.experimental_rerun()
