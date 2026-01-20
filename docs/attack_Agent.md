@@ -22,6 +22,17 @@
 
 ---
 
+## 1.5 가이드라인(Docs 전반 요약)
+
+- 엔드포인트 호환성: `OPENAI_AGENTS_DOCS.md`와 같이 OpenAI Chat 호환(`model`/`messages`) 규격을 우선 사용. `settings.endpoint_format`은 `openai-chat` 권장.
+- 설계 원칙: `MIRROR_PLAN.md`의 Attack→Judge→Defense→Report 흐름 유지. 파일 기반 로그(`PLANS.md`/`ATTACK_n.md`)는 매 라운드 갱신.
+- 워크플로우: 복잡한 흐름은 `LLAMA-INDEX-GUIDE.md`의 병렬/체크포인팅/수집 패턴 참조. MIRROR는 간결한 반복 루프를 우선.
+- 안전/윤리: 테스트 전용 환경에서 수행, 가드레일 프록시(ON) 활용해 차단/마스킹 효과 검증.
+- 카테고리 매핑: `jailbreak → dan`, `prompt_injection → prompt_injection`, `pii_leak → pii_leak/toxicity`(상황에 따라 병행).
+- 비용/지연: `attack_concurrency`와 `attack_tries`는 점진적으로 증가. 기본값 중간(4/2) 수준 권장.
+
+---
+
 ## 2. 운영 모드와 상호작용
 
 - Standalone 모드(완): `attack_main.py` + `attack_agent/` 사용
