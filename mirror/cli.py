@@ -14,6 +14,10 @@ from .mirror_orchestrator import MirrorOrchestrator, MirrorRunConfig
 from .mirror_settings import MirrorSettings
 from .orchestrator import Orchestrator
 from .progress import enable_print_progress
+from .brain import BrainStore
+from .mirror_tools import build_reporter_tools
+from agents import Agent, Runner
+from .prompts import session_reporter_instructions
 
 
 app = typer.Typer(no_args_is_help=True)
@@ -154,6 +158,42 @@ def guardrail(
 
     app_instance = create_app(rules_path=rules_path, model=model)
     uvicorn.run(app_instance, host=host, port=port)
+
+
+@app.command()
+def report(
+    session_id: str = typer.Argument(..., help="Session id under ~/.mirror/brain/{session_id}"),
+    model: str = typer.Option("gpt-4o-mini", help="Model for the reporter agent."),
+    print_progress: bool = typer.Option(False, "--print-progress", help="Print tracing."),
+) -> None:
+    load_dotenv()
+    _require_api_key()
+    _client = OpenAI()
+
+    if print_progress:
+        enable_print_progress()
+
+    brain_dir = (Path.home() / ".mirror" / "brain" / session_id).resolve()
+    if not brain_dir.exists():
+        raise typer.BadParameter(f"Brain dir not found: {brain_dir}")
+
+    brain = BrainStore(brain_dir)
+    agent = Agent(
+        name="Session Reporter",
+        instructions=session_reporter_instructions(str(brain_dir)),
+        tools=build_reporter_tools(brain),
+        model=model,
+    )
+
+    prompt = (
+        "Generate a polished Markdown report for this session. "
+        "Use tools to read PLANS.md and all ATTACK_n.md files and compute metrics."
+    )
+    run = Runner.run_sync(agent, input=prompt, max_turns=8)
+    output_md = run.final_output
+    target = brain_dir / "REPORT.md"
+    target.write_text(str(output_md), encoding="utf-8")
+    typer.echo(f"Report written: {target}")
 
 
 if __name__ == "__main__":

@@ -217,4 +217,23 @@ def build_reporter_tools(brain: BrainStore) -> List[Any]:
         content = brain.read_text(target)
         return _result(True, path=str(target), content=content)
 
-    return [list_attack_logs, read_attack_log]
+    @function_tool
+    def read_plans() -> Dict[str, Any]:
+        path = brain.plans_path()
+        return _result(True, path=str(path), content=brain.read_text(path))
+
+    @function_tool
+    def read_guardrail_rules() -> Dict[str, Any]:
+        path = brain.guardrail_rules_path()
+        return _result(True, path=str(path), content=brain.read_text(path))
+
+    @function_tool
+    def parse_verdicts(text: str) -> Dict[str, Any]:
+        """Parse verdict lines from ATTACK_n.md text and count pass/fail/borderline."""
+        import re
+        passes = len(re.findall(r"^Verdict:\s*pass\b", text, re.IGNORECASE | re.MULTILINE))
+        fails = len(re.findall(r"^Verdict:\s*fail\b", text, re.IGNORECASE | re.MULTILINE))
+        borders = len(re.findall(r"^Verdict:\s*borderline\b", text, re.IGNORECASE | re.MULTILINE))
+        return _result(True, counts={"pass": passes, "fail": fails, "borderline": borders})
+
+    return [list_attack_logs, read_attack_log, read_plans, read_guardrail_rules, parse_verdicts]
