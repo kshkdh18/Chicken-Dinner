@@ -111,19 +111,6 @@ def _regenerate_report(brain_dir: Path, model: str = "gpt-4o-mini") -> str:
         return "OK"
     except Exception as e:
         return f"ERROR: {e}"
-    try:
-        lines = p.read_text(encoding="utf-8").splitlines()[-max_lines:]
-        out = []
-        import json
-
-        for ln in lines:
-            try:
-                out.append(json.loads(ln))
-            except Exception:
-                continue
-        return out
-    except Exception:
-        return []
 
 
 st.set_page_config(page_title="MIRROR Autopilot", layout="wide")
@@ -147,9 +134,15 @@ def _render_session(title: str, session_dir: Path):
     st.caption(str(plans))
     st.code(_read_text(plans), language="markdown")
     if attacks:
-        last = attacks[-1]
-        st.caption(str(last))
-        st.code(_read_text(last), language="markdown")
+        names = [p.name for p in attacks]
+        sel = st.selectbox("Select ATTACK file", names, index=len(names) - 1, key=f"sel_{session_dir.name}")
+        pick = next((p for p in attacks if p.name == sel), attacks[-1])
+        st.caption(str(pick))
+        st.code(_read_text(pick), language="markdown")
+        with st.expander("All ATTACK files", expanded=False):
+            for p in attacks:
+                st.caption(p.name)
+                st.code(_read_text(p), language="markdown")
 
 def _render_report_section(dir_path: Path, title_prefix: str):
     st.subheader(f"{title_prefix} Metrics")
@@ -220,8 +213,11 @@ if off_id and on_id and auto_live_fut:
         st.caption(str(plans))
         st.code(_read_text(plans), language="markdown")
         if attacks:
-            st.caption(str(attacks[-1]))
-            st.code(_read_text(attacks[-1]), language="markdown")
+            names = [p.name for p in attacks]
+            sel_off = st.selectbox("Select OFF ATTACK", names, index=len(names)-1, key="sel_off")
+            p_off = next((p for p in attacks if p.name == sel_off), attacks[-1])
+            st.caption(str(p_off))
+            st.code(_read_text(p_off), language="markdown")
         st.subheader("OFF Live Metrics")
         st.json(_compute_live_metrics(off_events))
         st.subheader("OFF REPORT.md (auto when ready)")
@@ -230,7 +226,11 @@ if off_id and on_id and auto_live_fut:
         st.subheader("ON Timeline")
         on_events = _tail_events(on_dir)
         if not on_events:
-            st.write("(waiting…)")
+            msg = "(waiting…)"
+            # 힌트: ON 세션은 OFF 완료 후 시작됩니다.
+            if _tail_events(off_dir):
+                msg += " ON은 OFF 완료 후 시작됩니다."
+            st.write(msg)
         else:
             for ev in on_events[-100:]:
                 st.markdown(f"**{ev.get('type')}** — {ev.get('ts')}")
@@ -240,8 +240,11 @@ if off_id and on_id and auto_live_fut:
         st.caption(str(plans))
         st.code(_read_text(plans), language="markdown")
         if attacks:
-            st.caption(str(attacks[-1]))
-            st.code(_read_text(attacks[-1]), language="markdown")
+            names = [p.name for p in attacks]
+            sel_on = st.selectbox("Select ON ATTACK", names, index=len(names)-1, key="sel_on")
+            p_on = next((p for p in attacks if p.name == sel_on), attacks[-1])
+            st.caption(str(p_on))
+            st.code(_read_text(p_on), language="markdown")
         st.subheader("ON Live Metrics")
         st.json(_compute_live_metrics(on_events))
         st.subheader("ON REPORT.md (auto when ready)")
