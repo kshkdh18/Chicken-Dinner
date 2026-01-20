@@ -1,17 +1,27 @@
 from __future__ import annotations
 
 import asyncio
+import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List
 
-from agents import Agent, Runner, AgentOutputSchema
+from agents import Agent, AgentOutputSchema, Runner
 
+from attack_agent.attack_agent import AttackAgent as CustomAttackAgent
+from attack_agent.attack_agent import AttackResult as CustomAttackResult
 from mirror.agents.attack_engine import AttackEngine
-from mirror.toxic.engine import ToxicAdaptiveAttackEngine
-from mirror.storage.brain import BrainStore
-from mirror.defense.guardrail_rules import GuardrailRules, load_rules, save_rules
 from mirror.agents.judge_engine import JudgeEngine
+from mirror.analysis.reporting import build_report
+from mirror.analysis.white_box import (
+    apply_system_prompt_update,
+    scan_white_box,
+    summarize_scan,
+)
+from mirror.defense.guardrail_rules import GuardrailRules, load_rules, save_rules
+from mirror.events import append_event
+from mirror.storage.brain import BrainStore
+from mirror.toxic.engine import ToxicAdaptiveAttackEngine
+
 from .models import (
     AttackPlan,
     AttackResult,
@@ -23,12 +33,6 @@ from .models import (
 from .planner import MirrorPlannerWorkflow
 from .settings import MirrorSettings
 from .tools import build_defense_tools
-from mirror.analysis.reporting import build_report
-from mirror.analysis.white_box import apply_system_prompt_update, scan_white_box, summarize_scan
-import re
-from attack_agent.attack_agent import AttackAgent as CustomAttackAgent
-from attack_agent.attack_agent import AttackResult as CustomAttackResult
-from mirror.events import append_event
 
 
 @dataclass(frozen=True)
@@ -56,7 +60,7 @@ class MirrorIterationOutcome:
 class MirrorRunResult:
     settings: MirrorSettings
     plan: MirrorPlan
-    outcomes: List[MirrorIterationOutcome]
+    outcomes: list[MirrorIterationOutcome]
     report: ReportResult
     brain_dir: Path
 
@@ -89,7 +93,7 @@ class MirrorOrchestrator:
         self._write_plans(plan, current_iteration=0, outcomes=[])
         append_event(self.brain.root, "PlanReady", {"objective": plan.objective, "iterations": len(plan.iterations)})
 
-        outcomes: List[MirrorIterationOutcome] = []
+        outcomes: list[MirrorIterationOutcome] = []
         for iteration in range(1, self.settings.max_iterations + 1):
             attack_plan = self._attack_plan_for(iteration, plan)
             self._init_attack_log(iteration, attack_plan)
@@ -437,12 +441,12 @@ class MirrorOrchestrator:
             )
 
     def _run_report(
-        self, goal: str, plan: MirrorPlan, outcomes: List[MirrorIterationOutcome]
+        self, goal: str, plan: MirrorPlan, outcomes: list[MirrorIterationOutcome]
     ) -> ReportResult:
         return build_report(outcomes)
 
     def _write_plans(
-        self, plan: MirrorPlan, current_iteration: int, outcomes: List[MirrorIterationOutcome]
+        self, plan: MirrorPlan, current_iteration: int, outcomes: list[MirrorIterationOutcome]
     ) -> None:
         lines = [
             "# PLANS",

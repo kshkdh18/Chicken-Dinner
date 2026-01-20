@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from typing import List
 import importlib
 
 
-def load_garak_prompts(probe_paths: List[str], max_count: int = 5) -> List[str]:
-    prompts: List[str] = []
+def load_garak_prompts(probe_paths: list[str], max_count: int = 5) -> list[str]:
+    prompts: list[str] = []
     for path in probe_paths:
         try:
             mod_path, cls_name = path.rsplit(".", 1)

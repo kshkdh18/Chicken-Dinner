@@ -1,25 +1,24 @@
 from __future__ import annotations
 
-from pathlib import Path
 import json
 import os
 import secrets
+from pathlib import Path
 
 import typer
+from agents import Agent, Runner
 from dotenv import load_dotenv
 from openai import OpenAI
 
+from mirror.autopilot import run_autopilot
 from mirror.core.config import ApprovalMode, OrchestratorConfig
-from mirror.mirror_system.orchestrator import MirrorOrchestrator, MirrorRunConfig
-from mirror.mirror_system.settings import MirrorSettings
 from mirror.core.orchestrator import Orchestrator
 from mirror.core.progress import enable_print_progress
-from mirror.autopilot import run_autopilot
-from mirror.storage.brain import BrainStore
-from mirror.mirror_system.tools import build_reporter_tools
-from agents import Agent, Runner
 from mirror.core.prompts import session_reporter_instructions
-
+from mirror.mirror_system.orchestrator import MirrorOrchestrator, MirrorRunConfig
+from mirror.mirror_system.settings import MirrorSettings
+from mirror.mirror_system.tools import build_reporter_tools
+from mirror.storage.brain import BrainStore
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -153,9 +152,9 @@ def guardrail(
     _require_api_key()
     if rules_path is None:
         rules_path = Path.home() / ".mirror" / "brain" / "default" / "guardrail_rules.json"
-    from mirror.defense.guardrail import create_app
-
     import uvicorn
+
+    from mirror.defense.guardrail import create_app
 
     app_instance = create_app(rules_path=rules_path, model=model)
     uvicorn.run(app_instance, host=host, port=port)

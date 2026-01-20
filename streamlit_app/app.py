@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import sys
 import os
+import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import List, Tuple
 
 # Ensure repository root importability
 _ROOT = Path(__file__).resolve().parents[1]
@@ -20,7 +19,7 @@ from mirror.mirror_system.orchestrator import MirrorOrchestrator, MirrorRunConfi
 from mirror.mirror_system.settings import MirrorSettings
 
 
-def _brain_files(session_dir: Path) -> tuple[Path, List[Path]]:
+def _brain_files(session_dir: Path) -> tuple[Path, list[Path]]:
     plans = session_dir / "PLANS.md"
     attacks = sorted(session_dir.glob("ATTACK_*.md"))
     return plans, attacks
@@ -42,7 +41,7 @@ def _read_json(p: Path) -> dict:
         return {}
 
 
-def _tail_events(brain_dir: Path, max_lines: int = 300) -> List[dict]:
+def _tail_events(brain_dir: Path, max_lines: int = 300) -> list[dict]:
     p = brain_dir / "events.jsonl"
     if not p.exists():
         return []
@@ -61,7 +60,7 @@ def _tail_events(brain_dir: Path, max_lines: int = 300) -> List[dict]:
         return []
 
 
-def _compute_live_metrics(events: List[dict]) -> dict:
+def _compute_live_metrics(events: list[dict]) -> dict:
     total = 0
     verdicts = {"pass": 0, "fail": 0, "borderline": 0}
     for ev in events:

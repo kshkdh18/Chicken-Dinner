@@ -21,3 +21,39 @@ dependencies = [
     "streamlit>=1.40.0",
     "transformers>=4.44.0",
 ]
+
+[dependency-groups]
+dev = [
+    "black>=25.9.0",
+    "ruff>=0.14.0",
+]
+
+[tool.ruff]
+target-version = "py312"
+
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "*.egg-info",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "F",  # Pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "UP", # pyupgrade
+]
+
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["mirror"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

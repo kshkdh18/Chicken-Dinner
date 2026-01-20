@@ -2,32 +2,30 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import Optional
 
 import typer
 
-from attack_agent.config import load_settings, Settings
 from attack_agent.attack_agent import AttackAgent
+from attack_agent.config import Settings, load_settings
 from attack_agent.garak_loader import load_garak_prompts
-
 
 app = typer.Typer(help="Run minimal Attack Agent rounds against an OpenAI-compatible endpoint.")
 
 
 @app.command()
 def run(
-    settings_path: Optional[str] = typer.Option(None, help="Path to settings.json"),
-    endpoint: Optional[str] = typer.Option(None, help="Override target endpoint"),
+    settings_path: str | None = typer.Option(None, help="Path to settings.json"),
+    endpoint: str | None = typer.Option(None, help="Override target endpoint"),
     model: str = typer.Option("gpt-4o-mini", help="Model name to send to target"),
     strategies: str = typer.Option("dan,toxicity,prompt_injection", help="Comma-separated kinds"),
     mutation_level: str = typer.Option("light", help="light|medium|heavy"),
     max_prompts: int = typer.Option(3, help="Max prompts per strategy"),
     concurrency: int = typer.Option(4, help="Concurrent calls per round"),
     tries: int = typer.Option(1, help="Multi-turn attempts per prompt"),
-    garak_probes: Optional[str] = typer.Option(None, help="Comma-separated garak probe paths (overrides prompts)"),
+    garak_probes: str | None = typer.Option(None, help="Comma-separated garak probe paths (overrides prompts)"),
     round_id: int = typer.Option(1, help="Round index for report naming"),
     out_md: str = typer.Option("docs/ATTACK_1.md", help="Where to write markdown report"),
-    out_json: Optional[str] = typer.Option(None, help="Optional JSON summary output path"),
+    out_json: str | None = typer.Option(None, help="Optional JSON summary output path"),
 ):
     settings: Settings = load_settings(settings_path)
     if endpoint:

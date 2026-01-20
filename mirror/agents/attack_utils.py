@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import base64
 import codecs
-from typing import Dict, Optional
 
 import httpx
 
@@ -18,7 +17,7 @@ def _spacing(text: str) -> str:
     return " ".join(list(text))
 
 
-def mutate_prompt(prompt: str, method: str) -> Optional[str]:
+def mutate_prompt(prompt: str, method: str) -> str | None:
     if method == "base64":
         return base64.b64encode(prompt.encode("utf-8")).decode("utf-8")
     if method == "rot13":
@@ -36,7 +35,7 @@ def call_target_sync(
     endpoint: str | None = None,
     endpoint_format: str | None = None,
     messages: list[dict] | None = None,
-) -> Dict[str, object]:
+) -> dict[str, object]:
     url = endpoint or settings.endpoint
     fmt = endpoint_format or settings.endpoint_format
     timeout = settings.request_timeout
@@ -78,7 +77,7 @@ async def call_target_async(
     endpoint: str | None = None,
     endpoint_format: str | None = None,
     messages: list[dict] | None = None,
-) -> Dict[str, object]:
+) -> dict[str, object]:
     url = endpoint or settings.endpoint
     fmt = endpoint_format or settings.endpoint_format
     timeout = settings.request_timeout

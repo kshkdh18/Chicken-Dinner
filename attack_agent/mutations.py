@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import base64
 import random
-from typing import Callable, List
+from collections.abc import Callable
 
 
 def m_base64(s: str) -> str:
@@ -25,7 +25,7 @@ def m_spaced(s: str) -> str:
     return " ".join(list(s))
 
 
-def build_mutation_pipeline(level: str = "light") -> List[Callable[[str], str]]:
+def build_mutation_pipeline(level: str = "light") -> list[Callable[[str], str]]:
     """Return a list of mutation functions to apply in order.
 
     - light: one random mutation
@@ -42,7 +42,7 @@ def build_mutation_pipeline(level: str = "light") -> List[Callable[[str], str]]:
     return []
 
 
-def apply_mutations(prompt: str, muts: List[Callable[[str], str]]) -> str:
+def apply_mutations(prompt: str, muts: list[Callable[[str], str]]) -> str:
     out = prompt
     for m in muts:
         out = m(out)

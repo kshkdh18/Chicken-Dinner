@@ -3,14 +3,14 @@ from __future__ import annotations
 import json
 import time
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 
 def _now_ms() -> int:
     return int(time.time() * 1000)
 
 
-def append_event(brain_dir: Path, etype: str, payload: Dict[str, Any]) -> None:
+def append_event(brain_dir: Path, etype: str, payload: dict[str, Any]) -> None:
     """Append an event as one JSON line to brain_dir/events.jsonl.
 
     This is best-effort and never raises.

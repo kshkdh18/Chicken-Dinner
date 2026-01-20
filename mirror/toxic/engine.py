@@ -2,14 +2,13 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-from typing import List
 
 from ..agents.attack_library import get_prompts
 from ..agents.attack_utils import call_target_async, mutate_prompt
+from ..garak_cli import generate_prompts as garak_generate
 from ..mirror_system.settings import MirrorSettings
 from .generator import ToxicPromptGenerator
 from .scorer import ToxicityScorer
-from ..garak_cli import generate_prompts as garak_generate
 
 
 @dataclass
@@ -24,7 +23,7 @@ class ToxicTurn:
 class ToxicAttempt:
     index: int
     base_prompt: str
-    turns: List[ToxicTurn]
+    turns: list[ToxicTurn]
 
     @property
     def final_turn(self) -> ToxicTurn:
@@ -33,7 +32,7 @@ class ToxicAttempt:
 
 @dataclass
 class ToxicRun:
-    attempts: List[ToxicAttempt]
+    attempts: list[ToxicAttempt]
     chosen: ToxicAttempt
 
 
@@ -57,17 +56,17 @@ class ToxicAdaptiveAttackEngine:
 
         return asyncio.run(_runner())
 
-    async def _build_prompts(self, goal: str, category: str, iteration: int) -> List[str]:
+    async def _build_prompts(self, goal: str, category: str, iteration: int) -> list[str]:
         static_prompts = get_prompts("toxicity", limit=self.settings.toxic_variants)
         dynamic = self.gen.generate(None, goal=goal, count=self.settings.toxic_variants)
-        garak_prompts: List[str] = []
+        garak_prompts: list[str] = []
         if getattr(self.settings, "garak_cli_enabled", False) and getattr(self.settings, "garak_cli_probes", []):
             for probe in self.settings.garak_cli_probes:
                 garak_prompts.extend(garak_generate(probe, count=self.settings.toxic_variants))
         combined = [*static_prompts, *dynamic]
         if garak_prompts:
             combined.extend(garak_prompts)
-        deduped: List[str] = []
+        deduped: list[str] = []
         seen: set[str] = set()
         for p in combined:
             key = " ".join(p.split()).lower()
@@ -77,12 +76,12 @@ class ToxicAdaptiveAttackEngine:
             deduped.append(p)
         return deduped[: max(self.settings.attack_fanout, 1)]
 
-    async def _run_attempts(self, goal: str, prompts: List[str]) -> List[ToxicAttempt]:
+    async def _run_attempts(self, goal: str, prompts: list[str]) -> list[ToxicAttempt]:
         tasks = [self._run_one(i + 1, p) for i, p in enumerate(prompts)]
         return list(await asyncio.gather(*tasks))
 
     async def _run_one(self, index: int, base_prompt: str) -> ToxicAttempt:
-        turns: List[ToxicTurn] = []
+        turns: list[ToxicTurn] = []
         last_response: str | None = None
         cur_prompt = base_prompt
         for t in range(max(self.settings.toxic_turns_max, 1)):
@@ -107,5 +106,5 @@ class ToxicAdaptiveAttackEngine:
             cur_prompt = nexts[0]
         return ToxicAttempt(index=index, base_prompt=base_prompt, turns=turns)
 
-    def _select_best(self, attempts: List[ToxicAttempt]) -> ToxicAttempt:
+    def _select_best(self, attempts: list[ToxicAttempt]) -> ToxicAttempt:
         return sorted(attempts, key=lambda a: a.final_turn.score, reverse=True)[0]

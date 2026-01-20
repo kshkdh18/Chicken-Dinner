@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List
-
 from ..defense.detectors import detect_toxicity
 
 
@@ -27,7 +25,7 @@ class ToxicityScorer:
         except Exception:
             self._pipe = None
 
-    def score(self, text: str) -> tuple[float, List[str]]:
+    def score(self, text: str) -> tuple[float, list[str]]:
         self._ensure()
         if self._pipe is None:
             hits = detect_toxicity(text)

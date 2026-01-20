@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple, Callable
-from datetime import datetime
 import asyncio
 import time
+from collections.abc import Callable
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any
 
-from .config import Settings
 from . import probes
-from .mutations import apply_mutations, build_mutation_pipeline
+from .config import Settings
 from .executor import call_target
 from .judge import judge_response
+from .mutations import apply_mutations, build_mutation_pipeline
 from .rewrites import build_rewriters
 
 
@@ -22,7 +23,7 @@ class AttackResult:
     response_text: str
     passed: bool
     reason: str
-    raw: Dict[str, Any]
+    raw: dict[str, Any]
     attempts: int = 1
     latency_ms: int = 0
 
@@ -34,21 +35,21 @@ class AttackAgent:
         mutation_level: str = "light",
         tries: int = 1,
         concurrency: int = 4,
-        seed: Optional[int] = None,
+        seed: int | None = None,
     ) -> None:
         self.settings = settings
         self.mutations = build_mutation_pipeline(mutation_level)
         self.tries = max(1, tries)
         self.concurrency = max(1, concurrency)
-        self.rewriters: List[Callable[[str, str], str]] = build_rewriters()
+        self.rewriters: list[Callable[[str, str], str]] = build_rewriters()
         self._seed = seed
 
     async def run_round(
         self,
         kind: str,
-        max_prompts: Optional[int] = None,
-        prompts_override: Optional[List[str]] = None,
-    ) -> List[AttackResult]:
+        max_prompts: int | None = None,
+        prompts_override: list[str] | None = None,
+    ) -> list[AttackResult]:
         prompts = list(prompts_override) if prompts_override else probes.get_prompts(kind)
         if max_prompts is not None:
             prompts = prompts[:max_prompts]
@@ -60,7 +61,7 @@ class AttackAgent:
             attempts = 0
             start_ts = time.time()
             last_text: str = ""
-            last_raw: Dict[str, Any] = {}
+            last_raw: dict[str, Any] = {}
             last_reason: str = ""
             last_passed: bool = False
 
@@ -110,8 +111,8 @@ class AttackAgent:
         return f"# {title}\n\nGenerated: {datetime.utcnow().isoformat()}Z\n\n"
 
     @staticmethod
-    def to_markdown(round_id: int, results: List[AttackResult]) -> str:
-        lines: List[str] = []
+    def to_markdown(round_id: int, results: list[AttackResult]) -> str:
+        lines: list[str] = []
         lines.append(AttackAgent._md_header(f"ATTACK_{round_id}"))
         passed = sum(1 for r in results if r.passed)
         total = len(results)
@@ -135,7 +136,7 @@ class AttackAgent:
         return "\n".join(lines)
 
     @staticmethod
-    def to_json(round_id: int, results: List[AttackResult]) -> Dict[str, Any]:
+    def to_json(round_id: int, results: list[AttackResult]) -> dict[str, Any]:
         return {
             "round": round_id,
             "summary": {

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, List
+from collections.abc import Callable
 
 
 def rw_educational(original: str, current: str) -> str:
@@ -26,6 +26,6 @@ def rw_korean(original: str, current: str) -> str:
     )
 
 
-def build_rewriters() -> List[Callable[[str, str], str]]:
+def build_rewriters() -> list[Callable[[str, str], str]]:
     return [rw_educational, rw_roleplay, rw_korean]
 
