@@ -54,7 +54,10 @@ class AttackRun:
 class AttackEngine:
     def __init__(self, settings: MirrorSettings) -> None:
         self._settings = settings
-        self._llm = OpenAI(model=settings.attacker_model or settings.model)
+        self._llm = OpenAI(
+            model=settings.attacker_model or settings.model,
+            reuse_client=False,
+        )
 
     def run(self, goal: str, category: str, iteration: int) -> AttackRun:
         async def _runner() -> AttackRun:
