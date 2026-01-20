@@ -6,7 +6,7 @@ from typing import Dict, Optional
 
 import httpx
 
-from .mirror_settings import MirrorSettings
+from mirror.mirror_system.settings import MirrorSettings
 
 
 def _leetspeak(text: str) -> str:

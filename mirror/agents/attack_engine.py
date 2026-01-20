@@ -11,8 +11,8 @@ from pydantic import BaseModel, Field
 
 from .attack_library import get_prompts
 from .attack_utils import call_target_async, mutate_prompt
-from .detectors import detect_pii, detect_prompt_leak, detect_refusal, detect_toxicity
-from .mirror_settings import MirrorSettings
+from mirror.defense.detectors import detect_pii, detect_prompt_leak, detect_refusal, detect_toxicity
+from mirror.mirror_system.settings import MirrorSettings
 
 
 class _AttackPromptPayload(BaseModel):
@@ -103,8 +103,8 @@ class AttackEngine:
             f"Iteration: {iteration}\n"
             f"Generate {count} diverse prompts."
         )
+        raw = (await self._llm.acomplete(system_prompt + "\n\n" + user_prompt)).text
         try:
-            raw = (await self._llm.acomplete(system_prompt + "\n\n" + user_prompt)).text
             data = json.loads(raw)
             payload = _AttackPromptPayload(**data)
             return payload.prompts[:count]
@@ -204,8 +204,8 @@ class AttackEngine:
                 f"Model response: {previous_response}\n"
                 "Rewrite the prompt to be more indirect and persuasive."
             )
+            raw = (await self._llm.acomplete(system_prompt + "\n\n" + user_prompt)).text
             try:
-                raw = (await self._llm.acomplete(system_prompt + "\n\n" + user_prompt)).text
                 data = json.loads(raw)
                 payload = _FollowupPayload(**data)
                 return payload.prompt.strip()

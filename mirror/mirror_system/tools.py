@@ -6,10 +6,11 @@ from typing import Any, Dict, List
 
 from agents import function_tool
 
-from .attack_library import get_prompts
-from .attack_utils import call_target_sync, mutate_prompt
-from .brain import BrainStore
-from .mirror_settings import MirrorSettings
+from mirror.mirror_system.models import AttackPlan, MirrorPlan
+from mirror.agents.attack_library import get_prompts
+from mirror.agents.attack_utils import call_target_sync, mutate_prompt
+from mirror.storage.brain import BrainStore
+from mirror.mirror_system.settings import MirrorSettings
 
 
 def _result(ok: bool, **payload: Any) -> Dict[str, Any]:

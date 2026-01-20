@@ -7,7 +7,7 @@ from llama_index.core.workflow import StartEvent, StopEvent, Workflow, step
 from llama_index.llms.openai import OpenAI
 from pydantic import BaseModel, Field
 
-from .mirror_models import AttackPlan, MirrorPlan
+from mirror.mirror_system.models import AttackPlan, MirrorPlan
 
 
 class _PlanPayload(BaseModel):

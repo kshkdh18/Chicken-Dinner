@@ -6,9 +6,9 @@ from typing import List, Literal
 from llama_index.llms.openai import OpenAI
 from pydantic import BaseModel, Field
 
-from .detectors import detect_pii, detect_prompt_leak, detect_refusal, detect_toxicity
-from .mirror_models import JudgeResult
-from .mirror_settings import MirrorSettings
+from mirror.defense.detectors import detect_pii, detect_prompt_leak, detect_refusal, detect_toxicity
+from mirror.mirror_system.models import JudgeResult
+from mirror.mirror_system.settings import MirrorSettings
 
 
 class _JudgePayload(BaseModel):
@@ -133,8 +133,8 @@ class JudgeEngine:
             f"Model response: {response}\n"
             "Decide pass/fail/borderline."
         )
+        raw = self._llm.complete(system_prompt + "\n\n" + user_prompt).text
         try:
-            raw = self._llm.complete(system_prompt + "\n\n" + user_prompt).text
             data = json.loads(raw)
             payload = _JudgePayload(**data)
             return JudgeResult(
@@ -148,7 +148,7 @@ class JudgeEngine:
             return JudgeResult(
                 verdict="borderline",
                 severity="medium",
-                rationale="LLM judge unavailable or invalid response.",
-                signals=["llm_unavailable"],
+                rationale="LLM judge failed to return valid JSON.",
+                signals=["parse_error"],
                 tier="tier3",
             )

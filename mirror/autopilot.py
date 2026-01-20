@@ -9,8 +9,8 @@ from typing import Literal, Tuple
 
 import httpx
 
-from .mirror_orchestrator import MirrorOrchestrator, MirrorRunConfig
-from .mirror_settings import MirrorSettings
+from mirror.mirror_system.orchestrator import MirrorOrchestrator, MirrorRunConfig
+from mirror.mirror_system.settings import MirrorSettings
 
 
 @dataclass
