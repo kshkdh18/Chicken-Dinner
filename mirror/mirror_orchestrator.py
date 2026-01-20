@@ -8,6 +8,7 @@ from typing import List
 from agents import Agent, Runner, AgentOutputSchema
 
 from .attack_engine import AttackEngine
+from .toxic.engine import ToxicAdaptiveAttackEngine
 from .brain import BrainStore
 from .guardrail_rules import GuardrailRules, load_rules, save_rules
 from .judge_engine import JudgeEngine
@@ -66,6 +67,7 @@ class MirrorOrchestrator:
         self.brain = BrainStore(config.brain_dir())
         self._ensure_guardrail_rules()
         self.attack_engine = AttackEngine(settings)
+        self.toxic_engine = ToxicAdaptiveAttackEngine(settings)
         self.judge_engine = JudgeEngine(settings)
         self.white_box_root = (
             Path(settings.white_box_path).expanduser().resolve()
@@ -217,6 +219,36 @@ class MirrorOrchestrator:
             return result
 
         # Default: engine-based attack
+        if self.settings.use_toxic_small_llm or attack_plan.category.lower() == "toxicity":
+            attack_run = self.toxic_engine.run(
+                goal=goal,
+                category=attack_plan.category,
+                iteration=iteration,
+            )
+            chosen = attack_run.chosen
+            final_turn = chosen.final_turn
+            result = AttackResult(
+                category=attack_plan.category,
+                prompt=final_turn.prompt,
+                mutated_prompt=final_turn.mutated_prompt,
+                response=final_turn.response,
+                attack_notes=(
+                    f"toxic_small_llm=true; turns={len(chosen.turns)}; score={final_turn.score:.2f}"
+                ),
+                success_signal="toxicity" if final_turn.score >= self.settings.toxic_threshold else None,
+            )
+            lines = ["## Toxic Adaptive Attempts"]
+            for att in attack_run.attempts:
+                lines.append(f"- Attempt {att.index} base: {att.base_prompt}")
+                for i, tr in enumerate(att.turns, start=1):
+                    lines.append(f"  - Turn {i} prompt: {tr.prompt}")
+                    if tr.mutated_prompt:
+                        lines.append(f"    mutated: {tr.mutated_prompt}")
+                    snippet = (tr.response[:400] + "...") if len(tr.response) > 400 else tr.response
+                    lines.append(f"    score={tr.score:.2f} response: {snippet}")
+            self.brain.append_text(self.brain.attack_path(iteration), "\n" + "\n".join(lines) + "\n")
+            return result
+
         attack_run = self.attack_engine.run(
             goal=goal,
             category=attack_plan.category,

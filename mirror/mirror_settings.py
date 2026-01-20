@@ -42,3 +42,14 @@ class MirrorSettings(BaseModel):
     attack_concurrency: int = 4
     attack_tries: int = 1
     garak_probes: List[str] = Field(default_factory=list)
+
+    # Small-LLM toxic adaptive attack (optional)
+    use_toxic_small_llm: bool = False
+    toxic_model: str = "garak-llm/attackgeneration-toxicity_gpt2"
+    toxic_cls_model: str = "unitary/toxic-bert"
+    toxic_threshold: float = 0.7
+    toxic_variants: int = 3
+    toxic_turns_max: int = 4
+    toxic_max_new_tokens: int = 48
+    toxic_temperature: float = 1.0
+    toxic_top_p: float = 0.9

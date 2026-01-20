@@ -18,4 +18,5 @@ dependencies = [
     "typer>=0.21.1",
     "uvicorn>=0.40.0",
     "chainlit>=1.0.300",
+    "transformers>=4.44.0",
 ]
